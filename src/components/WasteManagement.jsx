@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Trash2, AlertTriangle, CheckCircle, Clock, Flame, Plus, Save, Filter, ArrowRight, Building2, Activity, TrendingUp, X } from "lucide-react";
+import { Trash2, AlertTriangle, CheckCircle, Clock, Flame, Plus, Save, Filter, ArrowRight, Building2, X, PenTool, FileSignature } from "lucide-react";
+import SignaturePad from "@/components/SignaturePad";
+import SignatureStatus from "@/components/SignatureStatus";
 
 const WHO_COLORS = {
   black: "bg-gray-800 text-white",
@@ -29,11 +31,16 @@ export default function WasteManagement() {
   const [filterDept, setFilterDept] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
+  // Signature state
+  const [signingLog, setSigningLog] = useState(null);
+  const [savingSignature, setSavingSignature] = useState(false);
+
   const [logForm, setLogForm] = useState({
     waste_category_id: "",
     origin_department: "nursing",
     quantity_kg: "",
     container_count: "1",
+    disposal_method: "incineration",
     notes: "",
   });
 
@@ -86,7 +93,7 @@ export default function WasteManagement() {
       sla_deadline: new Date(Date.now() + (cat?.max_storage_hours || 24) * 3600000).toISOString(),
     });
     setShowLogForm(false);
-    setLogForm({ waste_category_id: "", origin_department: "nursing", quantity_kg: "", container_count: "1", notes: "" });
+    setLogForm({ waste_category_id: "", origin_department: "nursing", quantity_kg: "", container_count: "1", disposal_method: "incineration", notes: "" });
     loadData();
   };
 
@@ -97,11 +104,40 @@ export default function WasteManagement() {
       const update = { status: nextStatus };
       if (nextStatus === "collected") update.collected_at = new Date().toISOString();
       if (nextStatus === "treated") update.treated_at = new Date().toISOString();
-      if (nextStatus === "disposed") {
-        update.sla_breached = new Date(update.collected_at || new Date()) > new Date(/* would compare */);
-      }
       await base44.entities.WasteLog.update(logId, update);
       loadData();
+    }
+  };
+
+  const handleSignDisposal = (log) => {
+    setSigningLog(log);
+  };
+
+  const handleSaveSignature = async (file) => {
+    if (!signingLog) return;
+    setSavingSignature(true);
+    try {
+      const { data: uploadData } = await base44.integrations.Core.UploadFile({ file });
+      await base44.functions.invoke("saveSignature", {
+        file_url: uploadData.file_url,
+        document_type: "discharge_summary",
+        document_id: signingLog.id,
+        patient_id: "",
+        visit_id: "",
+      });
+      await base44.entities.WasteLog.update(signingLog.id, {
+        signature_url: uploadData.file_url,
+        signed_by: "current_user",
+        signed_by_name: "Staff Member",
+        signed_at: new Date().toISOString(),
+        status: "disposed",
+      });
+      setSigningLog(null);
+      loadData();
+    } catch (e) {
+      console.error('Signature save failed:', e);
+    } finally {
+      setSavingSignature(false);
     }
   };
 
@@ -118,6 +154,9 @@ export default function WasteManagement() {
     const today = new Date();
     return l.status === "disposed" && d.toDateString() === today.toDateString();
   }).length;
+  const totalVolumeToday = filteredLogs
+    .filter(l => { const d = new Date(l.generated_at || l.created_date); const today = new Date(); return d.toDateString() === today.toDateString(); })
+    .reduce((sum, l) => sum + (l.quantity_kg || 0), 0);
 
   const getCategory = (id) => categories.find(c => c.id === id);
 
@@ -132,7 +171,7 @@ export default function WasteManagement() {
   return (
     <div>
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
         <div className="stat-card">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
@@ -150,7 +189,7 @@ export default function WasteManagement() {
               <Clock className="w-5 h-5 text-chart-2" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Pending Collection</p>
+              <p className="text-sm text-muted-foreground">Pending</p>
               <p className="text-xl font-bold">{pendingCollection}</p>
             </div>
           </div>
@@ -179,6 +218,17 @@ export default function WasteManagement() {
             <div>
               <p className="text-sm text-muted-foreground">Disposed Today</p>
               <p className="text-xl font-bold">{disposedToday}</p>
+            </div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-chart-4/10 flex items-center justify-center">
+              <Trash2 className="w-5 h-5 text-chart-4" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Volume Today</p>
+              <p className="text-xl font-bold">{totalVolumeToday.toFixed(1)} kg</p>
             </div>
           </div>
         </div>
@@ -257,6 +307,7 @@ export default function WasteManagement() {
               <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">Qty (kg)</th>
               <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">Status</th>
               <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">Method</th>
+              <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">Signature</th>
               <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">SLA</th>
               <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">Action</th>
             </tr>
@@ -265,10 +316,11 @@ export default function WasteManagement() {
             {filteredLogs.slice(0, 100).map(log => {
               const cat = getCategory(log.waste_category_id);
               const isOverdue = log.sla_deadline && new Date(log.sla_deadline) < new Date() && log.status !== "disposed";
+              const isSigned = log.signature_url && log.signed_at;
               return (
                 <tr key={log.id} className={`border-b border-border/40 ${isOverdue ? "bg-destructive/5" : ""}`}>
                   <td className="py-2.5 px-3 text-xs whitespace-nowrap">
-                    {new Date(log.generated_at || log.created_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
+                    {new Date(log.generated_at || log.created_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </td>
                   <td className="py-2.5 px-3">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${WHO_COLORS[cat?.color_code] || "bg-muted text-muted-foreground"}`}>
@@ -288,6 +340,22 @@ export default function WasteManagement() {
                     </span>
                   </td>
                   <td className="py-2.5 px-3 text-xs">{log.disposal_method || "—"}</td>
+                  <td className="py-2.5 px-3">
+                    {isSigned ? (
+                      <span className="flex items-center gap-1 text-[10px] text-chart-3 font-medium">
+                        <FileSignature className="w-3 h-3" /> Signed
+                      </span>
+                    ) : log.status !== "generated" ? (
+                      <button
+                        onClick={() => handleSignDisposal(log)}
+                        className="px-2 py-0.5 bg-chart-3/10 text-chart-3 rounded text-[10px] font-medium hover:bg-chart-3/20 flex items-center gap-1"
+                      >
+                        <PenTool className="w-3 h-3" /> Sign
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className="py-2.5 px-3">
                     {isOverdue ? (
                       <span className="text-destructive text-[10px] font-bold flex items-center gap-0.5">
@@ -313,7 +381,7 @@ export default function WasteManagement() {
               );
             })}
             {filteredLogs.length === 0 && (
-              <tr><td colSpan={8} className="py-12 text-center text-sm text-muted-foreground">No waste logs recorded.</td></tr>
+              <tr><td colSpan={9} className="py-12 text-center text-sm text-muted-foreground">No waste logs recorded.</td></tr>
             )}
           </tbody>
         </table>
@@ -323,45 +391,60 @@ export default function WasteManagement() {
       {showLogForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowLogForm(false)} />
-          <div className="relative bg-card rounded-xl p-6 shadow-2xl w-full max-w-sm mx-4">
-            <h3 className="font-heading text-lg font-semibold mb-4">Log Waste</h3>
+          <div className="relative bg-card rounded-xl p-6 shadow-2xl w-full max-w-md mx-4">
+            <h3 className="font-heading text-lg font-semibold mb-4 flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-destructive" /> Log Clinical Waste
+            </h3>
             <form onSubmit={addLog} className="space-y-3">
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Category *</label>
                 <select required className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={logForm.waste_category_id} onChange={e => setLogForm({...logForm, waste_category_id: e.target.value})}>
-                  <option value="">Select</option>
+                  <option value="">Select waste category</option>
                   {categories.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">Department *</label>
-                <select required className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={logForm.origin_department} onChange={e => setLogForm({...logForm, origin_department: e.target.value})}>
-                  <option value="nursing">Nursing</option>
-                  <option value="clinical">Clinical</option>
-                  <option value="lab">Laboratory</option>
-                  <option value="pharmacy">Pharmacy</option>
-                  <option value="inpatient">Inpatient</option>
-                  <option value="maternal">Maternal</option>
-                  <option value="theatre">Theatre</option>
-                  <option value="imaging">Imaging</option>
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Department *</label>
+                  <select required className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={logForm.origin_department} onChange={e => setLogForm({...logForm, origin_department: e.target.value})}>
+                    <option value="nursing">Nursing</option>
+                    <option value="clinical">Clinical</option>
+                    <option value="lab">Laboratory</option>
+                    <option value="pharmacy">Pharmacy</option>
+                    <option value="inpatient">Inpatient</option>
+                    <option value="maternal">Maternal</option>
+                    <option value="theatre">Theatre</option>
+                    <option value="imaging">Imaging</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">Disposal Method</label>
+                  <select className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={logForm.disposal_method} onChange={e => setLogForm({...logForm, disposal_method: e.target.value})}>
+                    <option value="incineration">Incineration 🔥</option>
+                    <option value="autoclave">Autoclave</option>
+                    <option value="chemical_treatment">Chemical Treatment</option>
+                    <option value="landfill">Landfill</option>
+                    <option value="recycling">Recycling</option>
+                    <option value="sewer">Sewer</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
                   <label className="block text-xs text-muted-foreground mb-1">Weight (kg)</label>
-                  <input type="number" step="0.1" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={logForm.quantity_kg} onChange={e => setLogForm({...logForm, quantity_kg: e.target.value})} />
+                  <input type="number" step="0.1" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={logForm.quantity_kg} onChange={e => setLogForm({...logForm, quantity_kg: e.target.value})} placeholder="0.0" />
                 </div>
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Containers</label>
-                  <input type="number" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={logForm.container_count} onChange={e => setLogForm({...logForm, container_count: e.target.value})} />
+                  <input type="number" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={logForm.container_count} onChange={e => setLogForm({...logForm, container_count: e.target.value})} placeholder="1" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">Notes</label>
-                <textarea className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" rows={2} value={logForm.notes} onChange={e => setLogForm({...logForm, notes: e.target.value})} />
+                <textarea className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" rows={2} value={logForm.notes} onChange={e => setLogForm({...logForm, notes: e.target.value})} placeholder="Additional disposal details..." />
               </div>
               <div className="flex gap-3 pt-2">
-                <button type="submit" className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium"><Save className="w-3 h-3 inline mr-1" /> Save</button>
+                <button type="submit" className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium"><Save className="w-3 h-3 inline mr-1" /> Save Waste Log</button>
                 <button type="button" onClick={() => setShowLogForm(false)} className="px-4 py-2 border border-border rounded-lg text-sm">Cancel</button>
               </div>
             </form>
@@ -400,6 +483,21 @@ export default function WasteManagement() {
               <div><label className="block text-xs text-muted-foreground mb-1">Description</label><textarea className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" rows={2} value={categoryForm.description} onChange={e => setCategoryForm({...categoryForm, description: e.target.value})} /></div>
               <div className="flex gap-3 pt-2"><button type="submit" className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium">Save</button><button type="button" onClick={() => setShowCategoryForm(false)} className="px-4 py-2 border border-border rounded-lg text-sm">Cancel</button></div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Signature Pad Modal */}
+      {signingLog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setSigningLog(null)} />
+          <div className="relative z-10 w-full max-w-lg mx-4">
+            <SignaturePad
+              title="Sign Waste Disposal Record"
+              onSave={handleSaveSignature}
+              onCancel={() => setSigningLog(null)}
+              saving={savingSignature}
+            />
           </div>
         </div>
       )}
