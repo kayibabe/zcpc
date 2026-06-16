@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Users, Calendar, Stethoscope, FlaskConical,
   Scan, Pill, BedDouble, Baby, Receipt, Shield, UserCircle,
   ChevronLeft, ChevronRight, LogOut, Menu, X, Activity,
-  Bell, Search, ClipboardList, CreditCard, BarChart3, Monitor
+  Bell, Search, ClipboardList, CreditCard, BarChart3, Monitor, FileBarChart
 } from "lucide-react";
 
 const navigation = [
@@ -20,6 +20,7 @@ const navigation = [
   { label: "Maternal", path: "/maternal", icon: Baby },
   { label: "Billing", path: "/billing", icon: Receipt },
   { label: "Admin", path: "/admin", icon: Shield },
+  { label: "MoH Reports", path: "/moh-reports", icon: FileBarChart },
   { label: "Patient Portal", path: "/portal", icon: UserCircle },
   { label: "Queue Display", path: "/queue", icon: Monitor },
 ];

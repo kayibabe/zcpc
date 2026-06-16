@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Users, Calendar, FlaskConical, BedDouble, Pill, Receipt, TrendingUp, Clock, Activity, RefreshCw, FileText } from "lucide-react";
+import { Users, Calendar, FlaskConical, BedDouble, Pill, Receipt, TrendingUp, Clock, Activity, RefreshCw, FileText, Bell, Send, Loader2 } from "lucide-react";
 import InventoryAlerts from "@/components/InventoryAlerts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+
+const CHART_COLORS = ["hsl(194, 65%, 42%)", "hsl(38, 92%, 50%)", "hsl(160, 60%, 40%)", "hsl(280, 50%, 50%)", "hsl(340, 65%, 50%)", "hsl(0, 72%, 51%)"];
 
 function StatCard({ icon: Icon, label, value, sub, color }) {
   return (
@@ -24,6 +27,9 @@ export default function Dashboard() {
   const [dailyReport, setDailyReport] = useState(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [reminderSending, setReminderSending] = useState(false);
+  const [reminderResult, setReminderResult] = useState(null);
+  const [occupancyData, setOccupancyData] = useState({ beds: [], wards: [], visits: [], queueSummary: {} });
 
   const refreshDailyReport = async () => {
     setReportLoading(true);
@@ -32,6 +38,35 @@ export default function Dashboard() {
       setDailyReport(data);
     } catch (e) { /* silent */ }
     finally { setReportLoading(false); }
+  };
+
+  const sendReminders = async () => {
+    setReminderSending(true);
+    setReminderResult(null);
+    try {
+      const { data } = await base44.functions.invoke('sendAppointmentReminders', {});
+      setReminderResult(data);
+    } catch (e) {
+      setReminderResult({ error: "Failed to send reminders" });
+    } finally {
+      setReminderSending(false);
+    }
+  };
+
+  const loadOccupancyData = async () => {
+    try {
+      const [wards, beds, visits] = await Promise.all([
+        base44.entities.Ward.list("", 20),
+        base44.entities.Bed.list("", 200),
+        base44.entities.Visit.filter({ queue_status: { $in: ["waiting", "triaged", "in_consultation", "in_lab", "in_pharmacy"] } }, "", 100),
+      ]);
+      const queueSummary = {};
+      visits.forEach(v => {
+        const s = v.queue_status || "waiting";
+        queueSummary[s] = (queueSummary[s] || 0) + 1;
+      });
+      setOccupancyData({ wards, beds, visits, queueSummary });
+    } catch (e) { /* silent */ }
   };
 
   useEffect(() => {
@@ -64,6 +99,7 @@ export default function Dashboard() {
     }
     load();
     refreshDailyReport();
+    loadOccupancyData();
   }, []);
 
   const visitTypeLabel = (t) => ({ outpatient: "OPD", inpatient: "IPD", emergency: "ER", anc: "ANC", postnatal: "PNC", procedure: "PROC" }[t] || t);
@@ -171,6 +207,48 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Occupancy Visualization */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="bg-card rounded-xl border border-border/60 p-5 shadow-sm">
+          <h3 className="font-heading text-lg font-semibold mb-4">Bed Occupancy by Ward</h3>
+          {occupancyData.wards.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={occupancyData.wards.map(w => {
+                const wardBeds = occupancyData.beds.filter(b => b.ward_id === w.id);
+                return { name: w.name, total: wardBeds.length, occupied: wardBeds.filter(b => b.status === "occupied").length };
+              }).filter(w => w.total > 0)}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                <Tooltip />
+                <Bar dataKey="occupied" stackId="a" fill="hsl(0, 72%, 51%)" radius={[4, 4, 0, 0]} name="Occupied" />
+                <Bar dataKey="total" stackId="a" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} name="Available">
+                  {occupancyData.wards.map((_, i) => <Cell key={i} fill="hsl(var(--muted))" />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-sm text-muted-foreground py-12 text-center">No wards configured</p>
+          )}
+        </div>
+
+        <div className="bg-card rounded-xl border border-border/60 p-5 shadow-sm">
+          <h3 className="font-heading text-lg font-semibold mb-4">Current Queue Status</h3>
+          {Object.keys(occupancyData.queueSummary).length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie data={Object.entries(occupancyData.queueSummary).map(([k, v]) => ({ name: k.replace(/_/g, " "), value: v }))} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={90} innerRadius={50} label={({ name, value }) => `${name}: ${value}`}>
+                  {Object.keys(occupancyData.queueSummary).map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-sm text-muted-foreground py-12 text-center">Queue is clear</p>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-card rounded-xl border border-border/60 p-5 shadow-sm">
           <h3 className="font-heading text-lg font-semibold mb-4 flex items-center gap-2">
@@ -233,6 +311,32 @@ export default function Dashboard() {
                 </a>
               ))}
             </div>
+          </div>
+
+          <div className="bg-card rounded-xl border border-border/60 p-5 shadow-sm">
+            <h3 className="font-heading text-lg font-semibold mb-4 flex items-center gap-2">
+              <Bell className="w-5 h-5 text-chart-2" /> Patient Reminders
+            </h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              Send appointment reminders for tomorrow's scheduled patients via email. Automatically runs daily at 6am.
+            </p>
+            <button
+              onClick={sendReminders}
+              disabled={reminderSending}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-chart-2 text-white rounded-lg text-sm font-medium hover:bg-chart-2/90 disabled:opacity-50 shadow-sm"
+            >
+              {reminderSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {reminderSending ? "Sending..." : "Send Reminders Now"}
+            </button>
+            {reminderResult && !reminderResult.error && (
+              <div className="mt-3 p-3 bg-chart-2/5 rounded-lg text-xs">
+                <p className="font-medium">Sent: {reminderResult.reminders_sent} of {reminderResult.total_appointments}</p>
+                <p className="text-muted-foreground mt-1">For {reminderResult.date} appointments</p>
+              </div>
+            )}
+            {reminderResult?.error && (
+              <div className="mt-3 p-3 bg-destructive/5 rounded-lg text-xs text-destructive">{reminderResult.error}</div>
+            )}
           </div>
 
           {dailyReport?.visit_breakdown && Object.keys(dailyReport.visit_breakdown).length > 0 && (
