@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import LivePulse from "@/components/LivePulse";
+
 import {
   LayoutDashboard, Users, Calendar, Stethoscope, FlaskConical,
   Scan, Pill, BedDouble, Baby, Receipt, Shield, UserCircle,
@@ -38,8 +40,9 @@ export default function Layout() {
   const sidebarContent = (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
-        <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-          <Activity className="w-5 h-5 text-primary-foreground" />
+        <div className="relative w-9 h-9 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+          <Activity className="w-5 h-5 text-primary-foreground animate-pulse" style={{ animationDuration: "2s" }} />
+          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-chart-3 border-2 border-sidebar" />
         </div>
         {!collapsed && (
           <div className="overflow-hidden">
@@ -102,8 +105,8 @@ export default function Layout() {
       {/* Mobile Sidebar */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-[260px] bg-sidebar shadow-2xl animate-in slide-in-from-left">
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <aside className="absolute left-0 top-0 bottom-0 w-[280px] bg-sidebar/95 backdrop-blur-xl shadow-2xl animate-in slide-in-from-left duration-300">
             {sidebarContent}
           </aside>
         </div>
@@ -128,6 +131,9 @@ export default function Layout() {
               <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
                 <span className="text-xs font-semibold text-primary">ZC</span>
               </div>
+            </div>
+            <div className="pl-2 border-l border-border/50">
+              <LivePulse compact />
             </div>
           </div>
         </header>
