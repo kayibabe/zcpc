@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, CalendarDays, Stethoscope, FlaskConical,
   Scan, Pill, BedDouble, Baby, Receipt, Shield, UserCircle,
   ChevronLeft, ChevronRight, LogOut, Menu, X, Activity,
-  Bell, Search, ClipboardPen, Monitor, FileBarChart, Trash2
+  Bell, Search, ClipboardPen, Monitor, FileBarChart, Trash2, PenTool
 } from "lucide-react";
 
 const navGroups = [
@@ -34,6 +34,7 @@ const navGroups = [
       { label: "Queue Display", path: "/queue", icon: Monitor },
       { label: "MoH Reports", path: "/moh-reports", icon: FileBarChart },
       { label: "Waste Management", path: "/waste", icon: Trash2 },
+      { label: "Signature Audit", path: "/signature-audit", icon: PenTool },
       { label: "Patient Portal", path: "/portal", icon: UserCircle },
       { label: "Admin", path: "/admin", icon: Shield },
     ],

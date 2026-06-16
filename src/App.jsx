@@ -23,6 +23,7 @@ import QueueDisplay from '@/pages/QueueDisplay';
 import Calendar from '@/pages/Calendar';
 import Nursing from '@/pages/Nursing';
 import WasteManagementPage from '@/pages/WasteManagement';
+import SignatureAudit from '@/pages/SignatureAudit';
 import MoHReports from '@/pages/MoHReports';
 import Layout from '@/components/Layout';
 
@@ -69,6 +70,7 @@ const AuthenticatedApp = () => {
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/nursing" element={<Nursing />} />
         <Route path="/waste" element={<WasteManagementPage />} />
+        <Route path="/signature-audit" element={<SignatureAudit />} />
         <Route path="/moh-reports" element={<MoHReports />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
