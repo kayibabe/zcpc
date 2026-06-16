@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Shield, Plus, Save, Users, UserPlus, Upload, FileBarChart, Settings, Building2, Loader2 } from "lucide-react";
+import { Shield, Plus, Save, Users, UserPlus, Upload, FileBarChart, Settings, Building2, Loader2, ClipboardList, Filter, X } from "lucide-react";
 
 export default function Admin() {
   const [users, setUsers] = useState([]);
   const [schemes, setSchemes] = useState([]);
   const [exports, setExports] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditFilter, setAuditFilter] = useState({ entity_type: "", action: "", limit: 100 });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("users");
   const [showInvite, setShowInvite] = useState(false);
@@ -17,14 +19,16 @@ export default function Admin() {
   useEffect(() => {
     async function load() {
       try {
-        const [u, s, e] = await Promise.all([
+        const [u, s, e, a] = await Promise.all([
           base44.entities.User.list("", 100),
           base44.entities.MedicalAidScheme.list("", 50),
           base44.entities.DHIS2Export.list("-created_date", 20),
+          base44.entities.AuditLog.list("-created_date", 100),
         ]);
         setUsers(u);
         setSchemes(s);
         setExports(e);
+        setAuditLogs(a);
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     }
@@ -51,6 +55,20 @@ export default function Admin() {
     setShowSchemeForm(false);
     setSchemeForm({ name: "", code: "", contact_phone: "", contact_email: "", coverage_details: "" });
   };
+
+  const refreshAuditLogs = async () => {
+    const filters = {};
+    if (auditFilter.entity_type) filters.entity_type = auditFilter.entity_type;
+    if (auditFilter.action) filters.action = auditFilter.action;
+    const a = await base44.entities.AuditLog.list("-created_date", auditFilter.limit);
+    setAuditLogs(a);
+  };
+
+  const filteredAuditLogs = auditLogs.filter(log => {
+    if (auditFilter.entity_type && log.entity_type !== auditFilter.entity_type) return false;
+    if (auditFilter.action && log.action !== auditFilter.action) return false;
+    return true;
+  });
 
   const generateDHIS2Export = async () => {
     setExporting(true);
@@ -80,6 +98,7 @@ export default function Admin() {
             { key: "users", icon: Users, label: "Users" },
             { key: "schemes", icon: Building2, label: "Medical Aid Schemes" },
             { key: "dhis2", icon: FileBarChart, label: "DHIS2 Exports" },
+            { key: "audit", icon: ClipboardList, label: "Audit Log" },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${activeTab === tab.key ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}><tab.icon className="w-4 h-4" />{tab.label}</button>
           ))}
@@ -150,6 +169,85 @@ export default function Admin() {
                 {exports.map(e => (<tr key={e.id} className="border-b border-border/40"><td className="py-2.5 px-3">{new Date(e.export_date).toLocaleDateString("en-GB")}</td><td className="py-2.5 px-3">{e.period}</td><td className="py-2.5 px-3">{e.report_type}</td><td className="py-2.5 px-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${e.status === "confirmed" ? "bg-chart-2/10 text-chart-2" : e.status === "failed" ? "bg-destructive/10 text-destructive" : "bg-chart-4/10 text-chart-4"}`}>{e.status}</span></td></tr>))}
                 {exports.length === 0 && <tr><td colSpan={4} className="py-12 text-center text-sm text-muted-foreground">No DHIS2 exports generated yet.</td></tr>}
               </tbody></table></div>
+            </div>
+          )}
+
+          {activeTab === "audit" && (
+            <div>
+              <div className="flex items-center gap-3 mb-4 flex-wrap">
+                <p className="text-sm text-muted-foreground">{filteredAuditLogs.length} log entries</p>
+                <div className="flex items-center gap-2 ml-auto">
+                  <select className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs" value={auditFilter.entity_type} onChange={e => setAuditFilter({...auditFilter, entity_type: e.target.value})}>
+                    <option value="">All Entities</option>
+                    <option value="Patient">Patient</option>
+                    <option value="Visit">Visit</option>
+                    <option value="Appointment">Appointment</option>
+                    <option value="Consultation">Consultation</option>
+                    <option value="LabOrder">LabOrder</option>
+                    <option value="Prescription">Prescription</option>
+                    <option value="Invoice">Invoice</option>
+                    <option value="Drug">Drug</option>
+                    <option value="Admission">Admission</option>
+                    <option value="Discharge">Discharge</option>
+                  </select>
+                  <select className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs" value={auditFilter.action} onChange={e => setAuditFilter({...auditFilter, action: e.target.value})}>
+                    <option value="">All Actions</option>
+                    <option value="create">Create</option>
+                    <option value="update">Update</option>
+                    <option value="delete">Delete</option>
+                  </select>
+                  <button onClick={() => setAuditFilter({ entity_type: "", action: "", limit: 100 })} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"><X className="w-4 h-4" /></button>
+                  <button onClick={refreshAuditLogs} className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted">Refresh</button>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-border"><th className="text-left py-2 px-3 font-medium text-muted-foreground">Time</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">User</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Action</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Entity</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Details</th></tr></thead>
+                  <tbody>
+                    {filteredAuditLogs.slice(0, auditFilter.limit).map(log => {
+                      let changesParsed = null;
+                      try { changesParsed = log.changes ? JSON.parse(log.changes) : null; } catch (e) {}
+                      return (
+                        <tr key={log.id} className="border-b border-border/40 hover:bg-muted/30">
+                          <td className="py-2.5 px-3 text-xs whitespace-nowrap">{new Date(log.timestamp || log.created_date).toLocaleString("en-GB")}</td>
+                          <td className="py-2.5 px-3">
+                            <span className="font-mono text-xs">{log.user_id?.slice(0, 8)}</span>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              log.action === 'create' ? 'bg-chart-2/10 text-chart-2' :
+                              log.action === 'update' ? 'bg-chart-1/10 text-chart-1' :
+                              log.action === 'delete' ? 'bg-destructive/10 text-destructive' :
+                              'bg-muted text-muted-foreground'
+                            }`}>{log.action}</span>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="font-medium">{log.entity_type}</span>
+                            {log.entity_id && <span className="text-xs text-muted-foreground block font-mono">{log.entity_id.slice(0, 8)}</span>}
+                          </td>
+                          <td className="py-2.5 px-3 text-xs max-w-xs">
+                            {changesParsed ? (
+                              <details className="cursor-pointer">
+                                <summary className="text-primary hover:underline">
+                                  {log.action === 'update' && changesParsed.changed_fields
+                                    ? `${changesParsed.changed_fields.length} fields changed`
+                                    : 'View details'}
+                                </summary>
+                                <pre className="mt-1 p-2 bg-muted rounded text-xs whitespace-pre-wrap max-h-40 overflow-y-auto">{JSON.stringify(changesParsed, null, 2)}</pre>
+                              </details>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {filteredAuditLogs.length === 0 && (
+                      <tr><td colSpan={5} className="py-12 text-center text-sm text-muted-foreground">No audit log entries found.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

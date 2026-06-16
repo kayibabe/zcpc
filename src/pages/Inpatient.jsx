@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { BedDouble, Plus, Save, Building, DoorOpen } from "lucide-react";
+import { BedDouble, Plus, Save, Building, DoorOpen, FileText, Loader2 } from "lucide-react";
 
 export default function Inpatient() {
   const [wards, setWards] = useState([]);
@@ -15,6 +15,8 @@ export default function Inpatient() {
   const [wardForm, setWardForm] = useState({ name: "", floor: "", type: "general", total_beds: "0" });
   const [showBedForm, setShowBedForm] = useState(false);
   const [bedForm, setBedForm] = useState({ bed_number: "", ward_id: "", type: "general", rate_per_day: "0" });
+  const [dischargeSummary, setDischargeSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -82,6 +84,18 @@ export default function Inpatient() {
     ]);
     setAdmissions(a);
     setBeds(b);
+  };
+
+  const generateSummary = async (admissionId) => {
+    setSummaryLoading(true);
+    try {
+      const { data } = await base44.functions.invoke('generateDischargeSummary', { admission_id: admissionId });
+      setDischargeSummary(data);
+    } catch (e) {
+      alert("Failed to generate summary: " + (e.response?.data?.error || e.message));
+    } finally {
+      setSummaryLoading(false);
+    }
   };
 
   if (loading) return <div className="page-container flex justify-center py-20"><div className="w-8 h-8 border-3 border-muted border-t-primary rounded-full animate-spin" /></div>;
@@ -168,7 +182,12 @@ export default function Inpatient() {
                     <td className="py-2.5 px-3">{getBedNumber(a.bed_id)}</td>
                     <td className="py-2.5 px-3">{new Date(a.admission_date).toLocaleDateString("en-GB")}</td>
                     <td className="py-2.5 px-3 capitalize">{a.admission_type}</td>
-                    <td className="py-2.5 px-3"><button onClick={() => dischargePatient(a.id, a.bed_id)} className="px-2 py-1 bg-chart-2/10 text-chart-2 rounded text-xs font-medium hover:bg-chart-2/20">Discharge</button></td>
+                    <td className="py-2.5 px-3">
+                      <div className="flex gap-1 flex-wrap">
+                        <button onClick={() => dischargePatient(a.id, a.bed_id)} className="px-2 py-1 bg-chart-2/10 text-chart-2 rounded text-xs font-medium hover:bg-chart-2/20">Discharge</button>
+                        <button onClick={() => generateSummary(a.id)} className="px-2 py-1 bg-chart-1/10 text-chart-1 rounded text-xs font-medium hover:bg-chart-1/20" disabled={summaryLoading}><FileText className="w-3 h-3 inline mr-0.5" /> Summary</button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {admissions.length === 0 && <tr><td colSpan={6} className="py-12 text-center text-sm text-muted-foreground">No current admissions.</td></tr>}
@@ -177,6 +196,62 @@ export default function Inpatient() {
           )}
         </div>
       </div>
+
+      {dischargeSummary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setDischargeSummary(null)} />
+          <div className="relative bg-card rounded-xl p-6 shadow-2xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-heading text-lg font-semibold">Discharge Summary</h3>
+              <button onClick={() => setDischargeSummary(null)} className="p-1 rounded-lg hover:bg-muted">✕</button>
+            </div>
+            {summaryLoading ? (
+              <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-muted/30 rounded-xl">
+                  <h4 className="font-heading font-semibold text-sm mb-2">Patient Details</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div><span className="text-muted-foreground">Name:</span> {dischargeSummary.structured_summary?.patient?.name}</div>
+                    <div><span className="text-muted-foreground">MRN:</span> {dischargeSummary.structured_summary?.patient?.mrn}</div>
+                    <div><span className="text-muted-foreground">Gender:</span> {dischargeSummary.structured_summary?.patient?.gender}</div>
+                    <div><span className="text-muted-foreground">Blood Group:</span> {dischargeSummary.structured_summary?.patient?.blood_group}</div>
+                  </div>
+                </div>
+                {dischargeSummary.structured_summary?.clinical_summary?.diagnoses?.length > 0 && (
+                  <div className="p-4 bg-muted/30 rounded-xl">
+                    <h4 className="font-heading font-semibold text-sm mb-2">Diagnoses</h4>
+                    {dischargeSummary.structured_summary.clinical_summary.diagnoses.map((d, i) => (
+                      <div key={i} className="text-sm flex justify-between py-1 border-b border-border/40 last:border-0">
+                        <span>{d.name}</span>
+                        <span className="text-muted-foreground text-xs">{d.icd10} • {d.type} • {d.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {dischargeSummary.structured_summary?.investigations?.lab_orders?.length > 0 && (
+                  <div className="p-4 bg-muted/30 rounded-xl">
+                    <h4 className="font-heading font-semibold text-sm mb-2">Investigations ({dischargeSummary.structured_summary.investigations.total_lab_orders} total)</h4>
+                    {dischargeSummary.structured_summary.investigations.lab_orders.map((l, i) => (
+                      <div key={i} className="text-sm flex justify-between py-1 border-b border-border/40 last:border-0">
+                        <span className="truncate max-w-xs">{l.tests}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${l.status === 'completed' || l.status === 'verified' ? 'bg-chart-2/10 text-chart-2' : 'bg-muted text-muted-foreground'}`}>{l.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {dischargeSummary.narrative_summary && (
+                  <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl">
+                    <h4 className="font-heading font-semibold text-sm mb-2 text-primary">Narrative Summary</h4>
+                    <div className="text-sm leading-relaxed whitespace-pre-line text-foreground/90">{dischargeSummary.narrative_summary}</div>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground text-right">Generated by {dischargeSummary.generated_by} on {new Date(dischargeSummary.generated_at).toLocaleString("en-GB")}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
