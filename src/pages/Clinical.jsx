@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Stethoscope, Heart, FileText, Pill, Activity, Plus, Save, Search, AlertTriangle, ShieldAlert, FlaskConical, ArrowRight, CheckCircle, GitBranch } from "lucide-react";
 import TemplateSelector from "@/components/TemplateSelector";
 import VitalSignsChart from "@/components/VitalSignsChart";
+import PatientJourneyTimeline from "@/components/PatientJourneyTimeline";
 
 export default function Clinical() {
   const [visits, setVisits] = useState([]);
@@ -278,6 +279,13 @@ export default function Clinical() {
                 ))}
               </div>
               <div className="p-5">
+                {/* Patient Journey Timeline */}
+                {journey && (
+                  <div className="mb-4">
+                    <PatientJourneyTimeline journeyId={journey.id} compact />
+                  </div>
+                )}
+
                 {/* Workflow Stage Bar */}
                 {journey && (
                   <div className="mb-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">

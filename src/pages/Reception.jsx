@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Search, UserPlus, ChevronDown, Check, Clock, Phone, MapPin, Users, RefreshCw } from "lucide-react";
+import { Search, UserPlus, ChevronDown, Check, Clock, Phone, MapPin, Users, RefreshCw, DoorOpen } from "lucide-react";
 import InsuranceVerifier from "@/components/InsuranceVerifier";
+import PatientJourneyTimeline from "@/components/PatientJourneyTimeline";
 
 export default function Reception() {
   const [patients, setPatients] = useState([]);
@@ -9,6 +10,8 @@ export default function Reception() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [roomVacancyNotifs, setRoomVacancyNotifs] = useState([]);
+  const [activeJourneys, setActiveJourneys] = useState([]);
   const [form, setForm] = useState({
     first_name: "", last_name: "", date_of_birth: "", gender: "male", phone: "",
     national_id: "", blood_group: "", district: "", village: "", landmark: "",
@@ -20,12 +23,16 @@ export default function Reception() {
   useEffect(() => {
     async function load() {
       try {
-        const [p, v] = await Promise.all([
+        const [p, v, roomNotifs, journeys] = await Promise.all([
           base44.entities.Patient.list("-created_date", 200),
           base44.entities.Visit.list("-created_date", 50),
+          base44.entities.Notification.filter({ target_role: "reception", is_read: false }, "-created_date", 20),
+          base44.entities.PatientJourney.filter({ status: "active" }, "-created_date", 30),
         ]);
         setPatients(p);
         setVisits(v);
+        setRoomVacancyNotifs(roomNotifs.filter(n => n.type === "info" && n.title?.includes("Room Available")));
+        setActiveJourneys(journeys);
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     }
@@ -244,24 +251,45 @@ export default function Reception() {
         </div>
 
         <div className="bg-card rounded-xl border border-border/60 shadow-sm">
-          <div className="p-4 border-b border-border">
+          <div className="p-4 border-b border-border flex items-center justify-between">
             <h3 className="font-heading font-semibold flex items-center gap-2"><Clock className="w-4 h-4 text-primary" /> Today's Queue ({visits.length})</h3>
+            {roomVacancyNotifs.length > 0 && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-chart-3/10 text-chart-3 rounded-full text-xs font-medium">
+                <DoorOpen className="w-3 h-3" /> {roomVacancyNotifs.length} room{roomVacancyNotifs.length > 1 ? "s" : ""} free
+              </span>
+            )}
           </div>
+
+          {/* Room Vacancy Banner */}
+          {roomVacancyNotifs.length > 0 && (
+            <div className="p-3 bg-chart-3/5 border-b border-chart-3/20">
+              <p className="text-xs font-medium text-chart-3 flex items-center gap-1.5">
+                <DoorOpen className="w-3.5 h-3.5" /> Consultation rooms available — ready for next patient
+              </p>
+            </div>
+          )}
+
           <div className="divide-y divide-border max-h-[500px] overflow-y-auto">
-            {visits.map(v => (
-              <div key={v.id} className="p-3 hover:bg-muted/40 transition-colors flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium capitalize">{v.visit_type}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(v.created_date).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} • {v.payment_type}</p>
+            {visits.map(v => {
+              const journey = activeJourneys.find(j => j.visit_id === v.id);
+              return (
+                <div key={v.id} className="p-3 hover:bg-muted/40 transition-colors">
+                  <div className="flex items-center justify-between mb-1">
+                    <div>
+                      <p className="text-sm font-medium capitalize">{v.visit_type}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(v.created_date).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} • {v.payment_type}</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      v.queue_status === "completed" ? "bg-chart-2/10 text-chart-2" :
+                      v.queue_status === "in_consultation" ? "bg-chart-1/10 text-chart-1" :
+                      v.queue_status === "waiting" ? "bg-chart-4/10 text-chart-4" :
+                      "bg-muted text-muted-foreground"
+                    }`}>{v.queue_status}</span>
+                  </div>
+                  {journey && <PatientJourneyTimeline journeyId={journey.id} compact />}
                 </div>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                  v.queue_status === "completed" ? "bg-chart-2/10 text-chart-2" :
-                  v.queue_status === "in_consultation" ? "bg-chart-1/10 text-chart-1" :
-                  v.queue_status === "waiting" ? "bg-chart-4/10 text-chart-4" :
-                  "bg-muted text-muted-foreground"
-                }`}>{v.queue_status}</span>
-              </div>
-            ))}
+              );
+            })}
             {visits.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">Queue is empty.</p>}
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Users, Calendar, FlaskConical, BedDouble, Pill, Receipt, TrendingUp, Clock, Activity, RefreshCw, FileText, Bell, Send, Loader2, GitBranch, Megaphone, ArrowRight } from "lucide-react";
+import { Users, Calendar, FlaskConical, BedDouble, Pill, Receipt, TrendingUp, Clock, Activity, RefreshCw, FileText, Bell, Send, Loader2, GitBranch, Megaphone, ArrowRight, AlertTriangle } from "lucide-react";
+import PatientJourneyTimeline from "@/components/PatientJourneyTimeline";
 import InventoryAlerts from "@/components/InventoryAlerts";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
@@ -342,21 +343,67 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground py-2">No active patient journeys.</p>
             ) : (
               <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                {activeJourneys.slice(0, 5).map(j => (
-                  <div key={j.id} className="flex items-center justify-between p-2.5 border border-border/40 rounded-lg bg-muted/10">
-                    <div>
-                      <span className="text-xs font-medium text-muted-foreground">Stage:</span>
-                      <span className="text-xs font-semibold ml-1 text-primary">{j.current_stage?.replace(/_/g, " ")}</span>
-                      {j.assigned_to_role && <span className="text-xs text-muted-foreground ml-2">→ {j.assigned_to_role}</span>}
+                {activeJourneys.slice(0, 5).map(j => {
+                  // Calculate SLA status
+                  let slaBreached = false;
+                  let minutesInStage = 0;
+                  try {
+                    const history = j.stage_history ? JSON.parse(j.stage_history) : [];
+                    const lastEntry = history[history.length - 1];
+                    if (lastEntry && lastEntry.to === j.current_stage) {
+                      const stageStart = new Date(lastEntry.timestamp);
+                      minutesInStage = (Date.now() - stageStart.getTime()) / 60000;
+                      const SLAS = {RECEPTION:15,TRIAGE:20,CONSULTATION:45,LAB_PENDING:30,LAB_PROCESSING:60,IMAGING_PENDING:30,IMAGING_PROCESSING:60,PHARMACY_PENDING:30,PHARMACY_DISPENSING:45,NURSING_ADMINISTRATION:60,BILLING:30};
+                      slaBreached = SLAS[j.current_stage] ? minutesInStage > SLAS[j.current_stage] : false;
+                    }
+                  } catch(_){}
+                  return (
+                    <div key={j.id} className={`flex items-center justify-between p-2.5 border rounded-lg ${slaBreached ? "border-destructive/30 bg-destructive/5" : "border-border/40 bg-muted/10"}`}>
+                      <div className="min-w-0 flex-1">
+                        <PatientJourneyTimeline journeyId={j.id} compact />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {activeJourneys.length > 5 && (
                   <p className="text-xs text-muted-foreground text-center">+{activeJourneys.length - 5} more active</p>
                 )}
               </div>
             )}
           </div>
+
+          {/* SLA Breach Alerts */}
+          {(() => {
+            const breached = activeJourneys.filter(j => {
+              try {
+                const history = j.stage_history ? JSON.parse(j.stage_history) : [];
+                const lastEntry = history[history.length - 1];
+                if (lastEntry && lastEntry.to === j.current_stage) {
+                  const stageStart = new Date(lastEntry.timestamp);
+                  const mins = (Date.now() - stageStart.getTime()) / 60000;
+                  const SLAS = {RECEPTION:15,TRIAGE:20,CONSULTATION:45,LAB_PENDING:30,LAB_PROCESSING:60,IMAGING_PENDING:30,IMAGING_PROCESSING:60,PHARMACY_PENDING:30,PHARMACY_DISPENSING:45,NURSING_ADMINISTRATION:60,BILLING:30};
+                  return SLAS[j.current_stage] ? mins > SLAS[j.current_stage] : false;
+                }
+              } catch(_){}
+              return false;
+            });
+            if (breached.length === 0) return null;
+            return (
+              <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 shadow-sm">
+                <h3 className="font-heading font-semibold text-sm mb-2 flex items-center gap-2 text-destructive">
+                  <AlertTriangle className="w-4 h-4" /> SLA Breaches ({breached.length})
+                </h3>
+                <div className="space-y-1.5">
+                  {breached.map(b => (
+                    <div key={b.id} className="text-xs text-destructive flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      <span>{b.current_stage?.replace(/_/g, " ")} — {b.assigned_to_role || "unassigned"}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="bg-card rounded-xl border border-border/60 p-5 shadow-sm">
             <h3 className="font-heading text-lg font-semibold mb-4 flex items-center gap-2">

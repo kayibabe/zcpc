@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { FlaskConical, Plus, Save, AlertTriangle, ClipboardCheck, Square, CheckSquare, Play, ArrowRight, CheckCircle, GitBranch } from "lucide-react";
+import PatientJourneyTimeline from "@/components/PatientJourneyTimeline";
 
 export default function Lab() {
   const [orders, setOrders] = useState([]);
@@ -124,6 +125,7 @@ export default function Lab() {
                     j.current_stage === "LAB_PROCESSING" ? "bg-chart-1/10 text-chart-1" : "bg-chart-4/10 text-chart-4"
                   }`}>{j.current_stage?.replace(/_/g, " ")}</span>
                 </div>
+                <div className="mb-2"><PatientJourneyTimeline journeyId={j.id} compact /></div>
                 <div className="flex gap-1 flex-wrap">
                   {j.current_stage === "LAB_PENDING" && (
                     <button onClick={() => transitionWorkflow(j.id, "LAB_PROCESSING", "Started processing")} disabled={transitioning} className="px-2 py-1 bg-chart-1/10 text-chart-1 rounded text-xs font-medium hover:bg-chart-1/20">

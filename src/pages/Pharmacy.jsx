@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Pill, Plus, Save, AlertTriangle, Package, ShoppingCart, Clock, TrendingDown, Loader2, BarChart3, Calendar, ArrowRight, CheckCircle, GitBranch } from "lucide-react";
 import InventoryAlerts from "@/components/InventoryAlerts";
+import PatientJourneyTimeline from "@/components/PatientJourneyTimeline";
 
 export default function Pharmacy() {
   const [drugs, setDrugs] = useState([]);
@@ -152,7 +153,10 @@ export default function Pharmacy() {
                     <tbody>
                       {pharmacyJourneys.map(j => (
                         <tr key={j.id} className="border-b border-border/40 hover:bg-muted/30">
-                          <td className="py-2.5 px-3 font-medium">{getPatientName(j.patient_id)}</td>
+                          <td className="py-2.5 px-3">
+                            <span className="font-medium block">{getPatientName(j.patient_id)}</span>
+                            <PatientJourneyTimeline journeyId={j.id} compact />
+                          </td>
                           <td className="py-2.5 px-3">
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                               j.current_stage === "PHARMACY_DISPENSING" ? "bg-chart-2/10 text-chart-2" : "bg-chart-4/10 text-chart-4"
