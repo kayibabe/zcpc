@@ -25,6 +25,8 @@ import Nursing from '@/pages/Nursing';
 import WasteManagementPage from '@/pages/WasteManagement';
 import SignatureAudit from '@/pages/SignatureAudit';
 import DoctorHandover from '@/pages/DoctorHandover';
+import MySignatures from '@/pages/MySignatures';
+import PhysicianPerformance from '@/pages/PhysicianPerformance';
 import MoHReports from '@/pages/MoHReports';
 import Layout from '@/components/Layout';
 
@@ -73,6 +75,8 @@ const AuthenticatedApp = () => {
         <Route path="/waste" element={<WasteManagementPage />} />
         <Route path="/signature-audit" element={<SignatureAudit />} />
         <Route path="/doctor-handover" element={<DoctorHandover />} />
+        <Route path="/my-signatures" element={<MySignatures />} />
+        <Route path="/physician-performance" element={<PhysicianPerformance />} />
         <Route path="/moh-reports" element={<MoHReports />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
