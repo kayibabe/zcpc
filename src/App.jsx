@@ -22,7 +22,6 @@ import PatientPortal from '@/pages/PatientPortal';
 import QueueDisplay from '@/pages/QueueDisplay';
 import Calendar from '@/pages/Calendar';
 import Nursing from '@/pages/Nursing';
-import NursePortal from '@/pages/NursePortal';
 import MoHReports from '@/pages/MoHReports';
 import Layout from '@/components/Layout';
 
@@ -68,7 +67,6 @@ const AuthenticatedApp = () => {
         <Route path="/queue" element={<QueueDisplay />} />
         <Route path="/calendar" element={<Calendar />} />
         <Route path="/nursing" element={<Nursing />} />
-        <Route path="/nurse-portal" element={<NursePortal />} />
         <Route path="/moh-reports" element={<MoHReports />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />

@@ -4,11 +4,12 @@ import {
   Heart, Thermometer, Activity, Wind, Stethoscope, Pill, Syringe,
   ClipboardCheck, GitBranch, ArrowRight, Loader2, CheckCircle,
   Clock, AlertTriangle, FileText, Search, Users, Plus, Save, Brain,
-  BarChart3, ChevronDown, ChevronUp
+  BarChart3, ChevronDown, ChevronUp, RefreshCw, FlaskConical, Bell
 } from "lucide-react";
 import DepartmentDashboard from "@/components/DepartmentDashboard";
 import PatientJourneyTimeline from "@/components/PatientJourneyTimeline";
 import RealTimeVitals from "@/components/RealTimeVitals";
+import BedsideNotifications from "@/components/BedsideNotifications";
 
 const VITAL_FIELDS = [
   { key: "bp_systolic", label: "BP Systolic", suffix: "mmHg", icon: Activity, min: 60, max: 220 },
@@ -57,6 +58,13 @@ export default function Nursing() {
   const [pendingMeds, setPendingMeds] = useState([]);
   const [medicationResult, setMedicationResult] = useState(null);
 
+  // Overview dashboard data
+  const [overviewStats, setOverviewStats] = useState({ triage: 0, nurses: 0, vitals: 0, meds: 0 });
+  const [recentLabs, setRecentLabs] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  const [overviewSearch, setOverviewSearch] = useState("");
+  const [overviewSelected, setOverviewSelected] = useState(null);
+
   // Triage auto-assessment
   const [assessments, setAssessments] = useState({});
   const [assessing, setAssessing] = useState({});
@@ -69,7 +77,8 @@ export default function Nursing() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [triaged, adminJ, p, v, disp] = await Promise.all([
+      const today = new Date().toISOString().slice(0, 10);
+      const [triaged, adminJ, p, v, disp, labs, vitalsToday] = await Promise.all([
         base44.entities.PatientJourney.filter(
           { current_stage: "TRIAGE", status: "active" }, "-created_date", 30
         ),
@@ -79,6 +88,12 @@ export default function Nursing() {
         base44.entities.Patient.list("-created_date", 200),
         base44.entities.Visit.list("-created_date", 100),
         base44.entities.PharmacyDispensing.list("-created_date", 50),
+        base44.entities.LabResult.filter(
+          { status: { $in: ["final", "preliminary"] } }, "-created_date", 20
+        ),
+        base44.entities.VitalSigns.filter(
+          { created_date: { $gte: today } }, "-created_date", 100
+        ),
       ]);
       setTriageQueue(triaged);
       setActivePatients(adminJ);
@@ -87,6 +102,13 @@ export default function Nursing() {
       setPendingMeds(
         disp.filter(d => !d.notes || !d.notes.includes("administered")).slice(0, 20)
       );
+      setOverviewStats({
+        triage: triaged.length,
+        nurses: adminJ.length,
+        vitals: vitalsToday.length,
+        meds: disp.filter(d => !d.notes?.includes("administered")).length,
+      });
+      setRecentLabs(labs);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -240,7 +262,7 @@ export default function Nursing() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="section-title">Nursing Station</h2>
-          <p className="text-sm text-muted-foreground mt-1">Triage, vital signs, medication administration & nursing notes</p>
+          <p className="text-sm text-muted-foreground mt-1">Overview, triage, vital signs, medication & notes</p>
         </div>
       </div>
 
@@ -251,6 +273,7 @@ export default function Nursing() {
       <div className="bg-card rounded-xl border border-border/60 shadow-sm mt-6">
         <div className="border-b border-border flex">
           {[
+            { key: "overview", label: "Overview", icon: Bell },
             { key: "triage", label: "Triage", icon: AlertTriangle, count: triageQueue.length },
             { key: "vitals", label: "Vital Signs", icon: Heart },
             { key: "medication", label: "Medication", icon: Syringe, count: pendingMeds.length },
@@ -278,6 +301,123 @@ export default function Nursing() {
         </div>
 
         <div className="p-4">
+          {/* OVERVIEW TAB */}
+          {activeTab === "overview" && (
+            <div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                {[
+                  { icon: AlertTriangle, label: "Triage Waiting", value: overviewStats.triage, sub: "Needs assessment", color: "text-destructive", bg: "bg-destructive/10" },
+                  { icon: Users, label: "Under Care", value: overviewStats.nurses, sub: "Active nursing", color: "text-chart-1", bg: "bg-chart-1/10" },
+                  { icon: Heart, label: "Vitals Today", value: overviewStats.vitals, sub: "Recorded", color: "text-chart-3", bg: "bg-chart-3/10" },
+                  { icon: Pill, label: "Pending Meds", value: overviewStats.meds, sub: "To administer", color: "text-chart-2", bg: "bg-chart-2/10" },
+                ].map(s => (
+                  <div key={s.label} className="bg-card rounded-xl border border-border/50 p-4 flex items-center gap-3 hover:shadow-md transition-shadow">
+                    <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center flex-shrink-0`}>
+                      <s.icon className={`w-5 h-5 ${s.color}`} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm text-muted-foreground">{s.label}</p>
+                      <p className="text-xl font-bold">{s.value}</p>
+                      {s.sub && <p className="text-[10px] text-muted-foreground">{s.sub}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {/* Quick Patient Lists */}
+                <div className="space-y-4">
+                  {/* Triage summary */}
+                  <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
+                    <div className="px-4 py-2.5 border-b border-border bg-destructive/5 flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-destructive flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5" /> Triage ({triageQueue.length})
+                      </h4>
+                    </div>
+                    <div className="max-h-[200px] overflow-y-auto divide-y divide-border/40">
+                      {triageQueue.length === 0 ? (
+                        <p className="p-4 text-xs text-muted-foreground text-center">Queue is clear</p>
+                      ) : (
+                        triageQueue.slice(0, 6).map(j => (
+                          <button key={j.id} onClick={() => { setActiveTab("triage"); }} className="w-full text-left p-2.5 hover:bg-muted/30 text-xs flex items-center justify-between">
+                            <span className="font-medium truncate">{getPatientName(j.patient_id)}</span>
+                            <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Nursing patients summary */}
+                  <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
+                    <div className="px-4 py-2.5 border-b border-border bg-chart-1/5 flex items-center justify-between">
+                      <h4 className="text-xs font-bold text-chart-1 flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5" /> Under Care ({activePatients.length})
+                      </h4>
+                    </div>
+                    <div className="max-h-[200px] overflow-y-auto divide-y divide-border/40">
+                      {activePatients.length === 0 ? (
+                        <p className="p-4 text-xs text-muted-foreground text-center">No patients under nursing care</p>
+                      ) : (
+                        activePatients.slice(0, 6).map(j => (
+                          <button key={j.id} onClick={() => { setActiveTab("active"); }} className="w-full text-left p-2.5 hover:bg-muted/30 text-xs flex items-center justify-between">
+                            <span className="font-medium truncate">{getPatientName(j.patient_id)}</span>
+                            <ChevronDown className="w-3 h-3 text-muted-foreground" />
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recent Labs */}
+                <div className="bg-card rounded-xl border border-border/50 overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-border bg-chart-3/5 flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-chart-3 flex items-center gap-1.5">
+                      <FlaskConical className="w-3.5 h-3.5" /> Recent Labs ({recentLabs.length})
+                    </h4>
+                  </div>
+                  <div className="max-h-[410px] overflow-y-auto">
+                    {recentLabs.length === 0 ? (
+                      <p className="p-4 text-xs text-muted-foreground text-center">No recent results</p>
+                    ) : (
+                      <div className="divide-y divide-border/40">
+                        {recentLabs.slice(0, 8).map(lr => (
+                          <div key={lr.id} className="px-4 py-2.5 text-xs">
+                            <p className="font-medium">{getPatientName(lr.patient_id)} — {lr.test_name}</p>
+                            <p>
+                              <span className="font-mono font-semibold">{lr.result_value} {lr.unit || ""}</span>
+                              {lr.reference_range && <span className="text-muted-foreground ml-1">({lr.reference_range})</span>}
+                            </p>
+                            {lr.is_critical && (
+                              <span className="inline-block mt-0.5 px-1.5 py-0.5 rounded bg-destructive/10 text-destructive text-[10px] font-bold">CRITICAL</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="flex items-center gap-2 mt-4">
+                <button onClick={() => setActiveTab("triage")} className="px-4 py-2 bg-destructive/10 text-destructive rounded-lg text-xs font-medium hover:bg-destructive/20 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5" /> Go to Triage
+                </button>
+                <button onClick={() => setActiveTab("vitals")} className="px-4 py-2 bg-primary/10 text-primary rounded-lg text-xs font-medium hover:bg-primary/20 flex items-center gap-1.5">
+                  <Heart className="w-3.5 h-3.5" /> Record Vitals
+                </button>
+                <button onClick={() => setActiveTab("medication")} className="px-4 py-2 bg-chart-2/10 text-chart-2 rounded-lg text-xs font-medium hover:bg-chart-2/20 flex items-center gap-1.5">
+                  <Syringe className="w-3.5 h-3.5" /> Administer Meds
+                </button>
+                <button onClick={loadData} disabled={loading} className="ml-auto px-3 py-2 rounded-lg border border-border text-xs font-medium hover:bg-muted flex items-center gap-1.5">
+                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* TRIAGE TAB */}
           {activeTab === "triage" && (
             <div>

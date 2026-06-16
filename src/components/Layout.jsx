@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, CalendarDays, Stethoscope, FlaskConical,
   Scan, Pill, BedDouble, Baby, Receipt, Shield, UserCircle,
   ChevronLeft, ChevronRight, LogOut, Menu, X, Activity,
-  Bell, Search, ClipboardList, ClipboardPen, Monitor, FileBarChart
+  Bell, Search, ClipboardPen, Monitor, FileBarChart
 } from "lucide-react";
 
 const navGroups = [
@@ -18,7 +18,6 @@ const navGroups = [
       { label: "Reception", path: "/reception", icon: Users },
       { label: "Appointments", path: "/appointments", icon: CalendarDays },
       { label: "Clinical", path: "/clinical", icon: Stethoscope },
-      { label: "Nurse Portal", path: "/nurse-portal", icon: ClipboardList },
       { label: "Nursing", path: "/nursing", icon: ClipboardPen },
       { label: "Laboratory", path: "/lab", icon: FlaskConical },
       { label: "Imaging", path: "/imaging", icon: Scan },
