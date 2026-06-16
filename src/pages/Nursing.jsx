@@ -4,7 +4,7 @@ import {
   Heart, Thermometer, Activity, Wind, Stethoscope, Pill, Syringe,
   ClipboardCheck, GitBranch, ArrowRight, Loader2, CheckCircle,
   Clock, AlertTriangle, FileText, Search, Users, Plus, Save, Brain,
-  BarChart3, ChevronDown, ChevronUp, RefreshCw, FlaskConical, Bell
+  BarChart3, ChevronDown, ChevronUp, RefreshCw, FlaskConical, Bell, Trash2
 } from "lucide-react";
 import DepartmentDashboard from "@/components/DepartmentDashboard";
 import PatientJourneyTimeline from "@/components/PatientJourneyTimeline";
@@ -49,6 +49,11 @@ export default function Nursing() {
     notes: "",
   });
 
+  // Waste logging
+  const [showWasteLog, setShowWasteLog] = useState(false);
+  const [wasteForm, setWasteForm] = useState({ waste_category_id: "", quantity_kg: "", container_count: "1", notes: "" });
+  const [wasteCategories, setWasteCategories] = useState([]);
+
   // Nursing notes
   const [notes, setNotes] = useState("");
   const [notesList, setNotesList] = useState([]);
@@ -91,6 +96,7 @@ export default function Nursing() {
 
   useEffect(() => {
     loadData();
+    base44.entities.WasteCategory.list("", 20).then(setWasteCategories).catch(() => {});
   }, []);
 
   const loadData = async () => {
@@ -243,6 +249,24 @@ export default function Nursing() {
     }
   };
 
+  const handleLogWaste = async (e) => {
+    e.preventDefault();
+    const cat = wasteCategories.find(c => c.id === wasteForm.waste_category_id);
+    await base44.entities.WasteLog.create({
+      ...wasteForm,
+      category_code: cat?.code || "",
+      origin_department: "nursing",
+      quantity_kg: Number(wasteForm.quantity_kg),
+      container_count: Number(wasteForm.container_count),
+      generated_at: new Date().toISOString(),
+      generated_by: "nursing_staff",
+      status: "generated",
+      sla_deadline: new Date(Date.now() + (cat?.max_storage_hours || 24) * 3600000).toISOString(),
+    });
+    setShowWasteLog(false);
+    setWasteForm({ waste_category_id: "", quantity_kg: "", container_count: "1", notes: "" });
+  };
+
   const handleSaveNote = async () => {
     if (!notes.trim()) return;
     // Add note to journey or visit
@@ -305,6 +329,9 @@ export default function Nursing() {
         </button>
         <button onClick={() => setActiveTab("notes")} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-chart-4/10 text-chart-4 hover:bg-chart-4/20 border border-chart-4/20 flex items-center gap-1.5">
           <ClipboardCheck className="w-3.5 h-3.5" /> Notes
+        </button>
+        <button onClick={() => setShowWasteLog(true)} className="px-3 py-1.5 rounded-lg text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20 flex items-center gap-1.5">
+          <Trash2 className="w-3.5 h-3.5" /> Log Waste
         </button>
         <button onClick={loadData} disabled={loading} className="ml-auto px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-muted flex items-center gap-1.5">
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
@@ -953,6 +980,29 @@ export default function Nursing() {
           )}
         </div>
       </div>
+      {/* Waste Log Modal */}
+      {showWasteLog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowWasteLog(false)} />
+          <div className="relative bg-card rounded-xl p-6 shadow-2xl w-full max-w-sm mx-4">
+            <h3 className="font-heading text-lg font-semibold mb-4">Log Waste (Nursing)</h3>
+            <form onSubmit={handleLogWaste} className="space-y-3">
+              <div><label className="block text-xs text-muted-foreground mb-1">Category *</label>
+                <select required className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={wasteForm.waste_category_id} onChange={e => setWasteForm({...wasteForm, waste_category_id: e.target.value})}>
+                  <option value="">Select</option>
+                  {wasteCategories.map(c => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="block text-xs text-muted-foreground mb-1">Weight (kg)</label><input type="number" step="0.1" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={wasteForm.quantity_kg} onChange={e => setWasteForm({...wasteForm, quantity_kg: e.target.value})} /></div>
+                <div><label className="block text-xs text-muted-foreground mb-1">Containers</label><input type="number" className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={wasteForm.container_count} onChange={e => setWasteForm({...wasteForm, container_count: e.target.value})} /></div>
+              </div>
+              <div><label className="block text-xs text-muted-foreground mb-1">Notes</label><textarea className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" rows={2} value={wasteForm.notes} onChange={e => setWasteForm({...wasteForm, notes: e.target.value})} /></div>
+              <div className="flex gap-3 pt-2"><button type="submit" className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium"><Save className="w-3 h-3 inline mr-1" /> Save</button><button type="button" onClick={() => setShowWasteLog(false)} className="px-4 py-2 border border-border rounded-lg text-sm">Cancel</button></div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

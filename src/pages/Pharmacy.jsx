@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Pill, Plus, Save, AlertTriangle, Package, ShoppingCart, Clock, TrendingDown, Loader2, BarChart3, Calendar, ArrowRight, CheckCircle, GitBranch, PenTool } from "lucide-react";
+import { Pill, Plus, Save, AlertTriangle, Package, ShoppingCart, Clock, TrendingDown, Loader2, BarChart3, Calendar, ArrowRight, CheckCircle, GitBranch, PenTool, Trash2 } from "lucide-react";
 import InventoryAlerts from "@/components/InventoryAlerts";
 import PatientJourneyTimeline from "@/components/PatientJourneyTimeline";
 import DepartmentDashboard from "@/components/DepartmentDashboard";
@@ -72,6 +72,34 @@ export default function Pharmacy() {
     ]);
     setDrugs(d);
     setDispensings(disp);
+  };
+
+  const disposeAsWaste = async (drug) => {
+    if (!confirm(`Mark "${drug.name}" (${drug.quantity_in_stock} units) for pharmaceutical waste disposal?`)) return;
+    try {
+      const cats = await base44.entities.WasteCategory.filter({ code: "PHM" }, "", 1);
+      const catId = cats.length > 0 ? cats[0].id : null;
+      await base44.entities.WasteLog.create({
+        waste_category_id: catId || "",
+        category_code: "PHM",
+        origin_department: "pharmacy",
+        quantity_kg: (drug.quantity_in_stock || 0) * 0.05,
+        container_count: 1,
+        disposal_method: "incineration",
+        notes: `Expired/recalled drug: ${drug.name} (batch ${drug.batch_number || "N/A"}, expiry ${drug.expiry_date || "N/A"}). ${drug.quantity_in_stock} units disposed.`,
+        generated_by: "pharmacy_staff",
+        generated_at: new Date().toISOString(),
+        status: "generated",
+        linked_document_type: "expired_drug",
+        linked_document_id: drug.id,
+        sla_deadline: new Date(Date.now() + 168 * 3600000).toISOString(),
+      });
+      await base44.entities.Drug.update(drug.id, { status: "discontinued", quantity_in_stock: 0 });
+      const d = await base44.entities.Drug.list("-created_date", 200);
+      setDrugs(d);
+    } catch (e) {
+      alert("Waste disposal failed: " + (e.message || "Unknown error"));
+    }
   };
 
   const getPatientName = (pid) => { const p = patients.find(pt => pt.id === pid); return p ? `${p.first_name} ${p.last_name}` : "Unknown"; };
@@ -250,7 +278,16 @@ export default function Pharmacy() {
                       <td className="py-2.5 px-3"><span className={d.quantity_in_stock <= d.reorder_level ? "text-destructive font-semibold" : ""}>{d.quantity_in_stock}</span></td>
                       <td className="py-2.5 px-3">MWK {d.unit_price?.toLocaleString()}</td>
                       <td className="py-2.5 px-3">{d.expiry_date || "—"}</td>
-                      <td className="py-2.5 px-3"><button onClick={() => dispenseDrug(d.id)} className="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium hover:bg-primary/20">Dispense</button></td>
+                      <td className="py-2.5 px-3">
+                        <div className="flex gap-1 flex-wrap">
+                          <button onClick={() => dispenseDrug(d.id)} className="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium hover:bg-primary/20">Dispense</button>
+                          {(d.status === "discontinued" || d.status === "recalled" || d.quantity_in_stock <= 0 || (d.expiry_date && new Date(d.expiry_date) < new Date())) && (
+                            <button onClick={() => disposeAsWaste(d)} className="px-2 py-1 bg-destructive/10 text-destructive rounded text-xs font-medium hover:bg-destructive/20 flex items-center gap-1">
+                              <Trash2 className="w-3 h-3" /> Dispose
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                   {drugs.length === 0 && <tr><td colSpan={6} className="py-12 text-center text-sm text-muted-foreground">No drugs in inventory.</td></tr>}

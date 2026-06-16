@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Shield, Plus, Save, Users, UserPlus, Upload, FileBarChart, Settings, Building2, Loader2, ClipboardList, Filter, X, Clock, TrendingUp } from "lucide-react";
+import { Shield, Plus, Save, Users, UserPlus, Upload, FileBarChart, Settings, Building2, Loader2, ClipboardList, Filter, X, Clock, TrendingUp, Trash2 } from "lucide-react";
+import WasteManagement from "@/components/WasteManagement";
 import ShiftManagement from "@/components/ShiftManagement";
 import StaffPerformance from "@/components/StaffPerformance";
 
@@ -103,6 +104,7 @@ export default function Admin() {
             { key: "performance", icon: TrendingUp, label: "Staff Performance" },
             { key: "dhis2", icon: FileBarChart, label: "DHIS2 Exports" },
             { key: "audit", icon: ClipboardList, label: "Audit Log" },
+            { key: "waste", icon: Trash2, label: "Waste Management" },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${activeTab === tab.key ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}><tab.icon className="w-4 h-4" />{tab.label}</button>
           ))}
@@ -179,6 +181,8 @@ export default function Admin() {
               </tbody></table></div>
             </div>
           )}
+
+          {activeTab === "waste" && <WasteManagement />}
 
           {activeTab === "audit" && (
             <div>

@@ -1,0 +1,119 @@
+{
+  "name": "WasteLog",
+  "type": "object",
+  "properties": {
+    "waste_category_id": {
+      "type": "string"
+    },
+    "category_code": {
+      "type": "string",
+      "description": "Denormalised for quick lookup"
+    },
+    "origin_department": {
+      "type": "string",
+      "enum": [
+        "reception",
+        "clinical",
+        "lab",
+        "imaging",
+        "pharmacy",
+        "nursing",
+        "inpatient",
+        "maternal",
+        "theatre"
+      ]
+    },
+    "ward_id": {
+      "type": "string"
+    },
+    "patient_id": {
+      "type": "string"
+    },
+    "visit_id": {
+      "type": "string"
+    },
+    "linked_document_type": {
+      "type": "string",
+      "enum": [
+        "prescription",
+        "lab_order",
+        "procedure",
+        "discharge",
+        "expired_drug",
+        null
+      ]
+    },
+    "linked_document_id": {
+      "type": "string"
+    },
+    "quantity_kg": {
+      "type": "number",
+      "description": "Weight in kilograms"
+    },
+    "container_count": {
+      "type": "number",
+      "description": "Number of containers/bags filled"
+    },
+    "disposal_method": {
+      "type": "string",
+      "enum": [
+        "incineration",
+        "autoclave",
+        "chemical_treatment",
+        "landfill",
+        "recycling",
+        "sewer"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "generated",
+        "segregated",
+        "collected",
+        "transported",
+        "treated",
+        "disposed"
+      ],
+      "default": "generated"
+    },
+    "generated_by": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "collected_by": {
+      "type": "string"
+    },
+    "collected_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "treated_by": {
+      "type": "string"
+    },
+    "treated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sla_breached": {
+      "type": "boolean",
+      "default": false
+    },
+    "sla_deadline": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "waste_category_id",
+    "category_code",
+    "origin_department",
+    "generated_by"
+  ]
+}
