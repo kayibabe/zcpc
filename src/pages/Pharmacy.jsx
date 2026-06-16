@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Pill, Plus, Save, AlertTriangle, Package, ShoppingCart, Clock } from "lucide-react";
+import { Pill, Plus, Save, AlertTriangle, Package, ShoppingCart, Clock, TrendingDown, Loader2, BarChart3, Calendar } from "lucide-react";
 import InventoryAlerts from "@/components/InventoryAlerts";
 
 export default function Pharmacy() {
@@ -9,6 +9,8 @@ export default function Pharmacy() {
   const [dispensings, setDispensings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("inventory");
+  const [forecast, setForecast] = useState(null);
+  const [forecastLoading, setForecastLoading] = useState(false);
   const [showAddDrug, setShowAddDrug] = useState(false);
   const [drugForm, setDrugForm] = useState({ name: "", generic_name: "", category: "", strength: "", form: "", manufacturer: "", unit_price: "", cost_price: "", quantity_in_stock: "", reorder_level: "10", batch_number: "", expiry_date: "" });
 
@@ -60,6 +62,18 @@ export default function Pharmacy() {
   const lowStockDrugs = drugs.filter(d => d.quantity_in_stock <= d.reorder_level);
   const expiringDrugs = drugs.filter(d => d.expiry_date && new Date(d.expiry_date) < new Date(Date.now() + 90 * 86400000));
 
+  const loadForecast = async () => {
+    setForecastLoading(true);
+    try {
+      const { data } = await base44.functions.invoke('generateInventoryForecast', {});
+      setForecast(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setForecastLoading(false);
+    }
+  };
+
   if (loading) return <div className="page-container flex justify-center py-20"><div className="w-8 h-8 border-3 border-muted border-t-primary rounded-full animate-spin" /></div>;
 
   return (
@@ -84,7 +98,7 @@ export default function Pharmacy() {
 
       <div className="bg-card rounded-xl border border-border/60 shadow-sm">
         <div className="border-b border-border flex">
-          {["inventory", "dispensing", "prescriptions"].map(t => (
+          {["inventory", "dispensing", "prescriptions", "forecast"].map(t => (
             <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-3 text-sm font-medium capitalize ${activeTab === t ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}>{t}</button>
           ))}
         </div>
@@ -150,6 +164,99 @@ export default function Pharmacy() {
                   {prescriptions.length === 0 && <tr><td colSpan={3} className="py-12 text-center text-sm text-muted-foreground">No pending prescriptions.</td></tr>}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {activeTab === "forecast" && (
+            <div>
+              {!forecast ? (
+                <div className="py-12 text-center">
+                  <BarChart3 className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground mb-4">Generate an inventory forecast based on 90-day consumption patterns with seasonal adjustments.</p>
+                  <button onClick={loadForecast} disabled={forecastLoading} className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
+                    {forecastLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <TrendingDown className="w-4 h-4" />}
+                    {forecastLoading ? "Analyzing..." : "Generate Forecast"}
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <p className="text-sm font-semibold">
+                        Generated: {new Date(forecast.generated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Based on 90-day consumption · {forecast.total_drugs} drugs analyzed</p>
+                    </div>
+                    <button onClick={loadForecast} disabled={forecastLoading} className="px-3 py-1.5 border border-border rounded-lg text-xs font-medium hover:bg-muted">
+                      {forecastLoading ? <Loader2 className="w-3 h-3 animate-spin inline mr-1" /> : null} Refresh
+                    </button>
+                  </div>
+
+                  {forecast.peak_season_active && (
+                    <div className="mb-4 p-3 bg-chart-2/10 border border-chart-2/30 rounded-lg flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-chart-2" />
+                      <p className="text-xs font-medium text-chart-2">Peak season active (Dec–Apr) — Malaria & seasonal drug multipliers applied</p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="p-3 bg-destructive/5 rounded-lg text-center border border-destructive/20">
+                      <p className="text-lg font-bold text-destructive">{forecast.critical_count}</p>
+                      <p className="text-xs text-muted-foreground">Critical</p>
+                    </div>
+                    <div className="p-3 bg-chart-2/5 rounded-lg text-center border border-chart-2/20">
+                      <p className="text-lg font-bold text-chart-2">{forecast.warning_count}</p>
+                      <p className="text-xs text-muted-foreground">Need Restock</p>
+                    </div>
+                    <div className="p-3 bg-chart-3/5 rounded-lg text-center border border-chart-3/20">
+                      <p className="text-lg font-bold text-chart-3">{forecast.adequate_count}</p>
+                      <p className="text-xs text-muted-foreground">Adequate</p>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead><tr className="border-b border-border">
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Drug</th>
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Stock</th>
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Daily Use</th>
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Reorder At</th>
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Days Left</th>
+                        <th className="text-left py-2 px-3 font-medium text-muted-foreground">Status</th>
+                      </tr></thead>
+                      <tbody>
+                        {forecast.items.map((f, i) => (
+                          <tr key={i} className={`border-b border-border/40 ${
+                            f.status === "critical" ? "bg-destructive/5" : f.status === "warning" ? "bg-chart-2/5" : ""
+                          }`}>
+                            <td className="py-2.5 px-3">
+                              <p className="font-medium text-sm">{f.drug_name}</p>
+                              {f.seasonality_active && <span className="text-xs text-chart-2">⚡ {f.seasonality_multiplier}x seasonal</span>}
+                            </td>
+                            <td className="py-2.5 px-3 font-mono text-xs">{f.current_stock}</td>
+                            <td className="py-2.5 px-3 font-mono text-xs">{f.average_daily_consumption.toFixed(1)}/day</td>
+                            <td className="py-2.5 px-3 font-mono text-xs">{f.reorder_point}</td>
+                            <td className="py-2.5 px-3">
+                              <span className={`font-mono text-xs font-semibold ${
+                                f.days_of_stock_remaining <= f.safety_stock_days ? "text-destructive" :
+                                f.days_of_stock_remaining <= f.lead_time_days ? "text-chart-2" : "text-chart-3"
+                              }`}>
+                                {f.days_of_stock_remaining === 999 ? "—" : f.days_of_stock_remaining}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                f.status === "critical" ? "bg-destructive/10 text-destructive" :
+                                f.status === "warning" ? "bg-chart-2/10 text-chart-2" : "bg-chart-3/10 text-chart-3"
+                              }`}>{f.status}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

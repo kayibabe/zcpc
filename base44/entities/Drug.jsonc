@@ -34,6 +34,21 @@
       "type": "number",
       "default": 10
     },
+    "seasonality_multiplier": {
+      "type": "number",
+      "default": 1.0,
+      "description": "Multiplier applied during peak season (e.g. 2.0 for malaria drugs Dec-Apr)"
+    },
+    "lead_time_days": {
+      "type": "number",
+      "default": 30,
+      "description": "Days for supply chain delivery from central medical stores"
+    },
+    "safety_stock_days": {
+      "type": "number",
+      "default": 7,
+      "description": "Days of buffer stock to maintain"
+    },
     "batch_number": {
       "type": "string"
     },

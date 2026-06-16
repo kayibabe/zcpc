@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Stethoscope, Heart, FileText, Pill, Activity, Plus, Save, Search } from "lucide-react";
+import { Stethoscope, Heart, FileText, Pill, Activity, Plus, Save, Search, AlertTriangle, ShieldAlert, FlaskConical } from "lucide-react";
 import TemplateSelector from "@/components/TemplateSelector";
 import VitalSignsChart from "@/components/VitalSignsChart";
 
@@ -18,6 +18,8 @@ export default function Clinical() {
   const [diagnoses, setDiagnoses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("vitals");
+  const [cdsWarnings, setCdsWarnings] = useState([]);
+  const [labOrders, setLabOrders] = useState([]);
 
   useEffect(() => {
     async function load() {
@@ -36,16 +38,21 @@ export default function Clinical() {
 
   const selectVisit = async (visit) => {
     setSelectedVisit(visit);
-    const [vList, cList, pList, dList] = await Promise.all([
+    setCdsWarnings([]);
+    const [vList, cList, pList, dList, lList] = await Promise.all([
       base44.entities.VitalSigns.filter({ visit_id: visit.id }, "-created_date", 10),
       base44.entities.Consultation.filter({ visit_id: visit.id }, "-created_date", 10),
       base44.entities.Prescription.filter({ visit_id: visit.id }, "-created_date", 10),
       base44.entities.Diagnosis.filter({ visit_id: visit.id }, "-created_date", 20),
+      base44.entities.LabOrder.filter({ patient_id: visit.patient_id }, "-created_date", 30),
     ]);
     setVitals(vList[0] || null);
     setConsultations(cList);
     setPrescriptions(pList);
     setDiagnoses(dList);
+    setLabOrders(lList);
+    // Run CDS checks
+    runCdsChecks(visit, dList, lList);
   };
 
   const getPatientName = (pid) => {
@@ -101,8 +108,78 @@ export default function Clinical() {
     setDiagnoses(d);
   };
 
+  // ── Clinical Decision Support Engine ──
+  const runCdsChecks = (visit, diags, labs) => {
+    const warnings = [];
+    const allDiagnoses = diags.map(d => d.diagnosis_name?.toLowerCase() || "");
+
+    // Malaria CDS: Check for malaria diagnosis without positive lab confirmation
+    const hasMalariaDiagnosis = allDiagnoses.some(d => d.includes("malaria"));
+    if (hasMalariaDiagnosis) {
+      const malariaLabOrders = labs.filter(l => {
+        const tests = (l.tests || "").toLowerCase();
+        return tests.includes("malaria") || tests.includes("rdt") || tests.includes("microscopy") || tests.includes("mps") || tests.includes("blood slide");
+      });
+      const positiveLab = malariaLabOrders.find(l => l.status === "completed" || l.status === "verified");
+
+      if (!positiveLab) {
+        warnings.push({
+          type: "malaria_lab",
+          severity: "error",
+          message: "MoH Protocol: Malaria diagnosis requires parasitological confirmation (RDT or Microscopy). Order lab test before prescribing antimalarials.",
+        });
+      }
+    }
+
+    // Severe malaria alert
+    const hasSevereDiagnosis = allDiagnoses.some(d => d.includes("severe") && d.includes("malaria"));
+    if (hasSevereDiagnosis) {
+      warnings.push({
+        type: "severe_malaria",
+        severity: "error",
+        message: "Severe Malaria Protocol: IV Artesunate required. Consider immediate referral if ICU not available. Per Malawi NMCP — do not use oral ACT.",
+      });
+    }
+
+    // Pregnancy + malaria safety
+    if (hasMalariaDiagnosis && visit?.visit_type === "anc") {
+      warnings.push({
+        type: "pregnancy_malaria",
+        severity: "warning",
+        message: "ANC Patient: Quinine in 1st trimester. Artemether-Lumefantrine (AL) safe in 2nd/3rd trimester per Malawi MSTG.",
+      });
+    }
+
+    setCdsWarnings(warnings);
+  };
+
+  // CDS-aware prescription save
   const savePrescription = async () => {
     if (!selectedVisit) return;
+    const prescribedDrugs = prescForm.items.map(i => i.drug_name?.toLowerCase() || "");
+    const actDrugs = ["artemether", "lumefantrine", "artesunate", "coartem", "al", "quinine", "artemether-lumefantrine"];
+    const isPrescribingAct = prescribedDrugs.some(d => actDrugs.some(act => d.includes(act)));
+
+    if (isPrescribingAct) {
+      const [diags, labs] = await Promise.all([
+        base44.entities.Diagnosis.filter({ visit_id: selectedVisit.id }, "-created_date", 20),
+        base44.entities.LabOrder.filter({ patient_id: selectedVisit.patient_id }, "-created_date", 30),
+      ]);
+      const allDiagnoses = diags.map(d => d.diagnosis_name?.toLowerCase() || "");
+      const hasMalariaDiagnosis = allDiagnoses.some(d => d.includes("malaria"));
+      if (hasMalariaDiagnosis) {
+        const malariaLabOrders = labs.filter(l => {
+          const tests = (l.tests || "").toLowerCase();
+          return tests.includes("malaria") || tests.includes("rdt") || tests.includes("microscopy") || tests.includes("mps") || tests.includes("blood slide");
+        });
+        const positiveLab = malariaLabOrders.find(l => l.status === "completed" || l.status === "verified");
+        if (!positiveLab) {
+          alert("⚠️ MoH Clinical Decision Support\n\nCannot prescribe antimalarials without a positive malaria test (RDT/Microscopy).\n\nPlease order a Malaria test from the Lab module first.\n\nThis follows the Malawi Test-Treat-Track protocol.");
+          return;
+        }
+      }
+    }
+
     const presc = await base44.entities.Prescription.create({
       visit_id: selectedVisit.id, patient_id: selectedVisit.patient_id,
       status: "pending", prescription_date: new Date().toISOString(),
@@ -173,6 +250,22 @@ export default function Clinical() {
                 ))}
               </div>
               <div className="p-5">
+                {/* CDS Warning Banner */}
+                {cdsWarnings.length > 0 && (
+                  <div className="mb-4 space-y-2">
+                    {cdsWarnings.map((w, i) => (
+                      <div key={i} className={`p-3 rounded-lg border flex items-start gap-2.5 ${
+                        w.severity === "error" ? "bg-destructive/5 border-destructive/30" : "bg-chart-2/5 border-chart-2/30"
+                      }`}>
+                        {w.severity === "error" ? <ShieldAlert className="w-4 h-4 text-destructive mt-0.5 shrink-0" /> : <AlertTriangle className="w-4 h-4 text-chart-2 mt-0.5 shrink-0" />}
+                        <div>
+                          <p className={`text-xs font-semibold ${w.severity === "error" ? "text-destructive" : "text-chart-2"}`}>{w.message}</p>
+                          {w.detail && <p className="text-xs text-muted-foreground mt-0.5">{w.detail}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {activeTab === "vitals" && (
                   <div>
                     <h4 className="font-heading font-semibold mb-4 flex items-center gap-2"><Heart className="w-4 h-4 text-destructive" /> Vital Signs</h4>
