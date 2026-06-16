@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
-import { Trash2, AlertTriangle, CheckCircle, Clock, Flame, Plus, Save, Filter, ArrowRight, Building2, X, PenTool, FileSignature } from "lucide-react";
+import { Trash2, AlertTriangle, CheckCircle, Clock, Flame, Plus, Save, ArrowRight, Building2, X, PenTool, FileSignature } from "lucide-react";
 import SignaturePad from "@/components/SignaturePad";
-import SignatureStatus from "@/components/SignatureStatus";
+import WasteVolumeChart from "@/components/WasteVolumeChart";
+import WasteComplianceDashboard from "@/components/WasteComplianceDashboard";
 
 const WHO_COLORS = {
   black: "bg-gray-800 text-white",
@@ -307,6 +308,7 @@ export default function WasteManagement() {
               <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">Qty (kg)</th>
               <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">Status</th>
               <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">Method</th>
+              <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">Hazard</th>
               <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">Signature</th>
               <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">SLA</th>
               <th className="text-left py-2 px-3 font-medium text-muted-foreground text-xs">Action</th>
@@ -339,7 +341,16 @@ export default function WasteManagement() {
                       {STATUS_LABELS[log.status]}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3 text-xs">{log.disposal_method || "—"}</td>
+                  <td className="py-2.5 px-3 text-xs capitalize">{log.disposal_method?.replace(/_/g, " ") || "—"}</td>
+                  <td className="py-2.5 px-3">
+                    {cat && cat.code !== "GEN" ? (
+                      <span className="flex items-center gap-1 text-[10px] text-destructive font-medium">
+                        <AlertTriangle className="w-3 h-3" /> Hazardous
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">General</span>
+                    )}
+                  </td>
                   <td className="py-2.5 px-3">
                     {isSigned ? (
                       <span className="flex items-center gap-1 text-[10px] text-chart-3 font-medium">
@@ -381,7 +392,7 @@ export default function WasteManagement() {
               );
             })}
             {filteredLogs.length === 0 && (
-              <tr><td colSpan={9} className="py-12 text-center text-sm text-muted-foreground">No waste logs recorded.</td></tr>
+              <tr><td colSpan={10} className="py-12 text-center text-sm text-muted-foreground">No waste logs recorded. Click "Log Waste" to start tracking.</td></tr>
             )}
           </tbody>
         </table>
@@ -486,6 +497,16 @@ export default function WasteManagement() {
           </div>
         </div>
       )}
+
+      {/* Compliance Dashboard */}
+      <div className="mt-8 border-t border-border pt-6">
+        <WasteComplianceDashboard logs={logs} categories={categories} />
+      </div>
+
+      {/* Volume Trends Chart */}
+      <div className="mt-8 bg-card rounded-xl border border-border/60 shadow-sm p-5">
+        <WasteVolumeChart logs={logs} categories={categories} />
+      </div>
 
       {/* Signature Pad Modal */}
       {signingLog && (
