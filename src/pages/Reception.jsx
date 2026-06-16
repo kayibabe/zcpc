@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Search, UserPlus, ChevronDown, Check, Clock, Phone, MapPin, Users } from "lucide-react";
+import InsuranceVerifier from "@/components/InsuranceVerifier";
 
 export default function Reception() {
   const [patients, setPatients] = useState([]);
@@ -207,6 +208,12 @@ export default function Reception() {
                     {p.insurance_scheme || "Self-pay"}
                   </span>
                 </div>
+                <InsuranceVerifier 
+                  patientId={p.id} 
+                  patientName={`${p.first_name} ${p.last_name}`}
+                  schemeName={p.insurance_scheme}
+                  memberNumber={p.insurance_member_number}
+                />
               </div>
             ))}
             {filteredPatients.length === 0 && <p className="p-6 text-center text-sm text-muted-foreground">No patients found.</p>}
