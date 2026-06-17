@@ -90,12 +90,22 @@ export default function Inpatient() {
   };
 
   const generateSummary = async (admissionId) => {
+    // Validate admission exists
+    const admission = admissions.find(a => a.id === admissionId);
+    if (!admission) {
+      alert("Admission record not found. Please refresh and try again.");
+      return;
+    }
     setSummaryLoading(true);
     try {
       const { data } = await base44.functions.invoke('generateDischargeSummary', { admission_id: admissionId });
+      if (!data || !data.structured_summary) {
+        throw new Error("Invalid response from discharge summary generator");
+      }
       setDischargeSummary(data);
     } catch (e) {
       alert("Failed to generate summary: " + (e.response?.data?.error || e.message));
+      setSummaryLoading(false);
     } finally {
       setSummaryLoading(false);
     }

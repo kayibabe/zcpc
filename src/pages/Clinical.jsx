@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Stethoscope, Heart, FileText, Pill, Activity, Plus, Save, Search, AlertTriangle, ShieldAlert, FlaskConical, ArrowRight, CheckCircle, GitBranch, PenTool, ArrowRightLeft, Clock, Users, FileBadge, FileWarning, Zap, Scissors, Beaker } from "lucide-react";
 import TemplateSelector from "@/components/TemplateSelector";
@@ -10,6 +11,7 @@ import SignaturePad from "@/components/SignaturePad";
 import SignatureStatus from "@/components/SignatureStatus";
 
 export default function Clinical() {
+  const navigate = useNavigate();
   const [visits, setVisits] = useState([]);
   const [patients, setPatients] = useState([]);
   const [selectedVisit, setSelectedVisit] = useState(null);
@@ -246,30 +248,42 @@ export default function Clinical() {
 
   // CDS-aware prescription save
   const savePrescription = async () => {
-    if (!selectedVisit) return;
-    const prescribedDrugs = prescForm.items.map(i => i.drug_name?.toLowerCase() || "");
-    const actDrugs = ["artemether", "lumefantrine", "artesunate", "coartem", "al", "quinine", "artemether-lumefantrine"];
-    const isPrescribingAct = prescribedDrugs.some(d => actDrugs.some(act => d.includes(act)));
+  if (!selectedVisit) return;
+  const prescribedDrugs = prescForm.items.map(i => i.drug_name?.toLowerCase() || "");
+  const actDrugs = ["artemether", "lumefantrine", "artesunate", "coartem", "al", "quinine", "artemether-lumefantrine"];
+  const isPrescribingAct = prescribedDrugs.some(d => actDrugs.some(act => d.includes(act)));
 
-    // ── Drug Safety Check ──
-    try {
-      const { data: safety } = await base44.functions.invoke("checkDrugSafety", {
-        patient_id: selectedVisit.patient_id,
-        drugs: prescForm.items.map(i => ({ drug_name: i.drug_name, generic_name: i.drug_name, category: "" })),
-      });
-      if (!safety.safe) {
-        const criticalWarnings = safety.warnings.filter(w => w.severity === "contraindicated");
-        if (criticalWarnings.length > 0) {
-          alert(`⚠️ DRUG SAFETY ALERT — CONTRAINDICATED COMBINATIONS\n\n${criticalWarnings.map(w => w.message).join("\n\n")}\n\nThese combinations are contraindicated. Please review and adjust.`);
-          return;
-        }
-        const majorWarnings = safety.warnings.filter(w => w.severity === "major");
-        if (majorWarnings.length > 0) {
-          const proceed = confirm(`⚠️ DRUG SAFETY — MAJOR INTERACTIONS\n\n${majorWarnings.map(w => w.message).join("\n\n")}\n\nPrescribe anyway with caution?`);
-          if (!proceed) return;
-        }
+  // ── Drug Safety Check (Check allergies first) ──
+  try {
+    // Check patient allergies
+    const allergies = await base44.entities.PatientAllergy.filter({ patient_id: selectedVisit.patient_id }, "", 50);
+    const allergyNames = allergies.map(a => a.allergen?.toLowerCase() || "");
+    const allergyConflicts = prescForm.items.filter(item => {
+      const drugName = item.drug_name?.toLowerCase() || "";
+      return allergyNames.some(a => drugName.includes(a) || a.includes(drugName.split(" ")[0]));
+    });
+    if (allergyConflicts.length > 0) {
+      alert(`⚠️ ALLERGY ALERT\n\nPatient has known allergies to:\n${allergies.map(a => `• ${a.allergen}`).join("\n")}\n\nCannot prescribe: ${allergyConflicts.map(a => a.drug_name).join(", ")}`);
+      return;
+    }
+
+    const { data: safety } = await base44.functions.invoke("checkDrugSafety", {
+      patient_id: selectedVisit.patient_id,
+      drugs: prescForm.items.map(i => ({ drug_name: i.drug_name, generic_name: i.drug_name, category: "" })),
+    });
+    if (!safety.safe) {
+      const criticalWarnings = safety.warnings.filter(w => w.severity === "contraindicated");
+      if (criticalWarnings.length > 0) {
+        alert(`⚠️ CANNOT PROCEED — CONTRAINDICATED COMBINATIONS\n\nThese drug combinations violate safety protocols and CANNOT be prescribed:\n\n${criticalWarnings.map(w => w.message).join("\n\n")}\n\nPlease adjust your prescription.`);
+        return; // Hard stop - do not proceed
       }
-    } catch (_) { /* proceed if safety check fails */ }
+      const majorWarnings = safety.warnings.filter(w => w.severity === "major");
+      if (majorWarnings.length > 0) {
+        const proceed = confirm(`⚠️ DRUG SAFETY — MAJOR INTERACTIONS\n\n${majorWarnings.map(w => w.message).join("\n\n")}\n\nPrescribe anyway with caution?`);
+        if (!proceed) return;
+      }
+    }
+  } catch (_) { /* proceed if safety check fails */ }
 
     if (isPrescribingAct) {
       const [diags, labs] = await Promise.all([
@@ -458,7 +472,7 @@ export default function Clinical() {
                           <CheckCircle className="w-3 h-3" /> Complete
                         </button>
                         <button
-                          onClick={() => window.location.href = `/surgery-calendar?patient=${selectedVisit.patient_id}`}
+                          onClick={() => navigate(`/surgery-calendar?patient=${selectedVisit.patient_id}`)}
                           className="inline-flex items-center gap-1 px-2.5 py-1 bg-chart-5/10 text-chart-5 rounded-md text-xs font-medium hover:bg-chart-5/20"
                         >
                           <Scissors className="w-3 h-3" /> Book Surgery
@@ -784,12 +798,13 @@ export default function Clinical() {
                           <form onSubmit={async (e) => {
                             e.preventDefault();
                             if (!deathForm.date_of_death || !deathForm.cause_of_death_immediate) return;
+                            const user = await base44.auth.me();
                             await base44.entities.DeathCertificate.create({
                               ...deathForm,
                               patient_id: selectedVisit.patient_id,
                               visit_id: selectedVisit.id,
-                              certifying_doctor_id: "current_user",
-                              certifying_doctor_name: getPatientName(selectedVisit.patient_id) ? "Attending" : "Medical Officer",
+                              certifying_doctor_id: user.id,
+                              certifying_doctor_name: user.full_name,
                               certification_date: new Date().toISOString(),
                             });
                             const dcs = await base44.entities.DeathCertificate.filter({ patient_id: selectedVisit.patient_id }, "-created_date", 10);
