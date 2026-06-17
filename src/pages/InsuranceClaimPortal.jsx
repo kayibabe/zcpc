@@ -11,6 +11,7 @@ import ClaimsCalendar from "@/components/ClaimsCalendar";
 import ClaimRejectionTracker from "@/components/ClaimRejectionTracker";
 import ClaimApprovalWorkflow from "@/components/ClaimApprovalWorkflow";
 import ClaimSummaryDashboard from "@/components/ClaimSummaryDashboard";
+import { validateClaim } from "@/lib/claimValidation";
 
 const STATUS_COLORS = {
   pending: "bg-chart-4/10 text-chart-4 border-chart-4/20",
@@ -46,7 +47,8 @@ export default function InsuranceClaimPortal() {
   const [showDigitalForm, setShowDigitalForm] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [selectedForBatch, setSelectedForBatch] = useState([]);
-  const [batchAction, setBatchAction] = useState(null);
+  const [validationErrors, setValidationErrors] = useState([]);
+  const [batchSyncing, setBatchSyncing] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -83,12 +85,20 @@ export default function InsuranceClaimPortal() {
 
   const handleSaveClaim = async (e) => {
     e.preventDefault();
-    if (!form.invoice_id || !form.patient_id || !form.scheme_name) {
-      alert("Fill all required fields");
+    
+    const validation = validateClaim(form, patients, invoices);
+    if (!validation.valid) {
+      setValidationErrors(validation.errors);
       return;
     }
 
+    if (validation.warnings.length > 0) {
+      const proceed = confirm("Warnings:\n\n" + validation.warnings.join("\n") + "\n\nContinue anyway?");
+      if (!proceed) return;
+    }
+
     setSaving(true);
+    setValidationErrors([]);
     try {
       await base44.entities.InsuranceClaim.create({
         ...form,
@@ -171,6 +181,21 @@ export default function InsuranceClaimPortal() {
     }
   };
 
+  const syncSelectedToDrive = async () => {
+    setBatchSyncing(true);
+    try {
+      for (const claimId of selectedForBatch) {
+        await base44.functions.invoke('syncClaimsToDrive', { claim_id: claimId });
+      }
+      alert(`✅ Synced ${selectedForBatch.length} claim(s) to Google Drive`);
+      setSelectedForBatch([]);
+    } catch (e) {
+      alert("Sync failed: " + e.message);
+    } finally {
+      setBatchSyncing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="page-container flex justify-center py-20">
@@ -239,6 +264,24 @@ export default function InsuranceClaimPortal() {
         <ClaimStatusTracker />
       </div>
 
+      {/* Tab Content - Summary */}
+      {activeTab === "summary" && <ClaimSummaryDashboard />}
+
+      {/* Tab Content - Approval Workflow */}
+      {activeTab === "approval" && <ClaimApprovalWorkflow />}
+
+      {/* Tab Content - Rejections */}
+      {activeTab === "rejections" && <ClaimRejectionTracker />}
+
+      {/* Tab Content - Analytics Dashboard */}
+      {activeTab === "dashboard" && <ClaimsDashboard />}
+
+      {/* Tab Content - Calendar */}
+      {activeTab === "calendar" && <ClaimsCalendar />}
+
+      {/* Tab Content - Claims List */}
+      {activeTab === "list" && (
+        <>
       {/* Status Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
         {[
@@ -288,8 +331,16 @@ export default function InsuranceClaimPortal() {
           <span className="text-sm font-medium">{selectedForBatch.length} claim(s) selected</span>
           <div className="flex gap-2">
             <button
+              onClick={syncSelectedToDrive}
+              disabled={batchSyncing}
+              className="px-3 py-1.5 bg-chart-2/10 text-chart-2 rounded-lg text-xs font-medium hover:bg-chart-2/20 disabled:opacity-50 flex items-center gap-1"
+            >
+              {batchSyncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+              {batchSyncing ? "Syncing..." : "Sync to Drive"}
+            </button>
+            <button
               onClick={async () => {
-                setLoading(true);
+                setSaving(true);
                 try {
                   for (const id of selectedForBatch) {
                     await base44.entities.InsuranceClaim.update(id, {
@@ -302,10 +353,11 @@ export default function InsuranceClaimPortal() {
                 } catch (e) {
                   alert("Batch submit failed: " + e.message);
                 } finally {
-                  setLoading(false);
+                  setSaving(false);
                 }
               }}
-              className="px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-medium hover:bg-primary/20"
+              disabled={saving}
+              className="px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-medium hover:bg-primary/20 disabled:opacity-50"
             >
               Submit Selected
             </button>
@@ -355,7 +407,7 @@ export default function InsuranceClaimPortal() {
                   <th className="text-center py-3 px-4 font-medium text-muted-foreground">
                     <input
                       type="checkbox"
-                      checked={selectedForBatch.length === filteredClaims.length}
+                      checked={selectedForBatch.length === filteredClaims.length && filteredClaims.length > 0}
                       onChange={() => {
                         if (selectedForBatch.length === filteredClaims.length) {
                           setSelectedForBatch([]);
@@ -555,15 +607,24 @@ export default function InsuranceClaimPortal() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowForm(false)} />
-          <div className="relative bg-card rounded-xl border border-border shadow-2xl p-6 w-full max-w-lg mx-4">
+          <div className="relative bg-card rounded-xl border border-border shadow-2xl p-6 w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-heading text-lg font-semibold flex items-center gap-2">
                 <Plus className="w-5 h-5 text-primary" /> Create Insurance Claim
               </h3>
-              <button onClick={() => setShowForm(false)} className="p-1 rounded hover:bg-muted">
+              <button onClick={() => { setShowForm(false); setValidationErrors([]); }} className="p-1 rounded hover:bg-muted">
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {validationErrors.length > 0 && (
+              <div className="mb-4 p-3 bg-destructive/5 border border-destructive/20 rounded-lg">
+                <p className="text-xs font-semibold text-destructive mb-1">Validation Errors:</p>
+                {validationErrors.map((err, i) => (
+                  <p key={i} className="text-xs text-destructive">• {err}</p>
+                ))}
+              </div>
+            )}
 
             <form onSubmit={handleSaveClaim} className="space-y-4">
               <div>
@@ -650,7 +711,7 @@ export default function InsuranceClaimPortal() {
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   {saving ? "Creating..." : "Create Claim"}
                 </button>
-                <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted">
+                <button type="button" onClick={() => { setShowForm(false); setValidationErrors([]); }} className="px-4 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted">
                   Cancel
                 </button>
               </div>
@@ -713,6 +774,8 @@ export default function InsuranceClaimPortal() {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
     </div>
   );
