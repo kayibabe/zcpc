@@ -18,6 +18,7 @@ const ALL_NAV_GROUPS = [
     items: [
       { label: "Dashboard", path: "/", icon: LayoutDashboard, roles: ["admin", "user"] },
       { label: "Reception", path: "/reception", icon: Users, roles: ["admin", "user"] },
+      { label: "Patient Intake", path: "/patient-intake", icon: Users, roles: ["admin", "user"] },
       { label: "Appointments", path: "/appointments", icon: CalendarDays, roles: ["admin", "user"] },
       { label: "Clinical", path: "/clinical", icon: Stethoscope, roles: ["admin", "user"] },
       { label: "Nursing", path: "/nursing", icon: ClipboardPen, roles: ["admin", "user"] },
@@ -41,6 +42,7 @@ const ALL_NAV_GROUPS = [
       { label: "Queue Display", path: "/queue", icon: Monitor, roles: ["admin", "user"] },
       { label: "Triage", path: "/triage", icon: ClipboardCheck, roles: ["admin", "user"] },
       { label: "Journey Map", path: "/journey-map", icon: GitBranch, roles: ["admin", "user"] },
+      { label: "Treatment Adherence", path: "/treatment-adherence", icon: TrendingUp, roles: ["admin"] },
       { label: "Theatre Calendar", path: "/surgery-calendar", icon: Scissors, roles: ["admin", "user"] },
       { label: "MoH Reports", path: "/moh-reports", icon: FileBarChart, roles: ["admin"] },
       { label: "Physician Perf.", path: "/physician-performance", icon: Stethoscope, roles: ["admin"] },

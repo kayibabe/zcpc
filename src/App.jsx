@@ -40,6 +40,8 @@ import PatientFeedback from '@/pages/PatientFeedback';
 import RadiologyReportLibrary from '@/pages/RadiologyReportLibrary';
 import SurgicalSupplyInventory from '@/pages/SurgicalSupplyInventory';
 import DischargeChecklistFlow from '@/pages/DischargeChecklistFlow';
+import PatientIntake from '@/pages/PatientIntake';
+import TreatmentAdherence from '@/pages/TreatmentAdherence';
 import EmergencyAlertSystem from '@/components/EmergencyAlertSystem';
 import Layout from '@/components/Layout';
 
@@ -103,6 +105,8 @@ const AuthenticatedApp = () => {
         <Route path="/radiology-reports" element={<RadiologyReportLibrary />} />
         <Route path="/surgical-supplies" element={<SurgicalSupplyInventory />} />
         <Route path="/discharge-checklist" element={<DischargeChecklistFlow />} />
+        <Route path="/patient-intake" element={<PatientIntake />} />
+        <Route path="/treatment-adherence" element={<TreatmentAdherence />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
