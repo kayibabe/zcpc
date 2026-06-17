@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight, LogOut, Menu, X, Activity,
   Bell, Search, ClipboardPen, Monitor, FileBarChart, Trash2, PenTool,
   ArrowRightLeft, ShieldCheck, ClipboardCheck, Scissors, GitBranch, Clock, Zap,
-  TrendingUp, Package, MessageSquare, FileText, CheckCircle
+  TrendingUp, Package, MessageSquare, FileText, CheckCircle, ChevronDown
 } from "lucide-react";
 
 const ALL_NAV_GROUPS = [
@@ -111,7 +111,15 @@ export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userRole, setUserRole] = useState("user");
+  const [collapsedGroups, setCollapsedGroups] = useState({});
   const location = useLocation();
+
+  const toggleGroupCollapse = (groupLabel) => {
+    setCollapsedGroups(prev => ({
+      ...prev,
+      [groupLabel]: !prev[groupLabel]
+    }));
+  };
 
   useEffect(() => {
     base44.auth.me().then(u => {
@@ -141,34 +149,49 @@ export default function Layout() {
         {ALL_NAV_GROUPS.map((group) => {
           const visibleItems = group.items.filter(item => item.roles.includes(userRole));
           if (visibleItems.length === 0) return null;
+          const isMainGroup = group.label === "Main";
+          const isGroupCollapsed = collapsedGroups[group.label];
           return (
           <div key={group.label}>
-            {!collapsed && (
-              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
-                {group.label}
-              </p>
-            )}
-            <div className="space-y-0.5">
-              {visibleItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150 border-l-[3px] ${
-                      isActive
-                        ? "bg-sidebar-accent/50 text-sidebar-foreground hover:bg-sidebar-accent/50 border-l-sidebar-primary"
-                        : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground border-l-transparent"
-                    }`}
-                  >
-                    <Icon className="w-[18px] h-[18px] flex-shrink-0" />
-                    {!collapsed && <span className="truncate">{item.label}</span>}
-                  </Link>
-                );
-              })}
+            <div className="flex items-center justify-between">
+              {!collapsed && (
+                <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
+                  {group.label}
+                </p>
+              )}
+              {!isMainGroup && !collapsed && (
+                <button
+                  onClick={() => toggleGroupCollapse(group.label)}
+                  className="p-1 hover:bg-sidebar-accent/30 rounded transition-colors mr-1"
+                  title={isGroupCollapsed ? "Expand" : "Collapse"}
+                >
+                  <ChevronDown className={`w-4 h-4 text-sidebar-foreground/40 transition-transform duration-200 ${isGroupCollapsed ? "-rotate-90" : ""}`} />
+                </button>
+              )}
             </div>
+            {!isGroupCollapsed && (
+              <div className="space-y-0.5">
+                {visibleItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setMobileOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150 border-l-[3px] ${
+                        isActive
+                          ? "bg-sidebar-accent/50 text-sidebar-foreground hover:bg-sidebar-accent/50 border-l-sidebar-primary"
+                          : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground border-l-transparent"
+                      }`}
+                    >
+                      <Icon className="w-[18px] h-[18px] flex-shrink-0" />
+                      {!collapsed && <span className="truncate">{item.label}</span>}
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </div>
           );
         })}
