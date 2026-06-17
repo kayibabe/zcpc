@@ -4,7 +4,7 @@ import {
   Heart, Thermometer, Activity, Wind, Stethoscope, Pill, Syringe,
   ClipboardCheck, GitBranch, ArrowRight, Loader2, CheckCircle,
   Clock, AlertTriangle, FileText, Search, Users, Plus, Save, Brain,
-  BarChart3, ChevronDown, ChevronUp, RefreshCw, FlaskConical, Bell, Trash2
+  BarChart3, ChevronDown, ChevronUp, RefreshCw, FlaskConical, Bell, Trash2, Square, CheckSquare, Zap
 } from "lucide-react";
 import DepartmentDashboard from "@/components/DepartmentDashboard";
 import PatientJourneyTimeline from "@/components/PatientJourneyTimeline";
@@ -77,6 +77,13 @@ export default function Nursing() {
 
   // Unified workflow — merged triage + active patients sorted by priority
   const [expandedPatient, setExpandedPatient] = useState(null);
+  const [bulkSelect, setBulkSelect] = useState(new Set());
+  const [bulkTriagePriority, setBulkTriagePriority] = useState("urgent");
+  const [bulkTriageNotes, setBulkTriageNotes] = useState("");
+  const [bulkTriageOpen, setBulkTriageOpen] = useState(false);
+  const [bulkTriageing, setBulkTriageing] = useState(false);
+  const [bulkResult, setBulkResult] = useState(null);
+
   const unifiedQueue = useMemo(() => {
     const all = [...triageQueue, ...activePatients];
     const priorityOrder = { emergency: 0, urgent: 1, normal: 2 };
@@ -166,22 +173,54 @@ export default function Nursing() {
   const handleTriageTransition = async (journey, priority) => {
     setTransitioning(true);
     try {
-      const visit = getVisit(journey.visit_id);
-      if (visit) {
-        await base44.entities.Visit.update(visit.id, { priority, queue_status: "triaged" });
-      }
-      await base44.functions.invoke("handleWorkflowStageChange", {
+      const { data } = await base44.functions.invoke("formalizeTriageWorkflow", {
         journey_id: journey.id,
-        next_stage: "CONSULTATION",
+        triage_priority: priority,
         notes: `Triaged as ${priority} — sent to consultation`,
       });
       setAssessments(prev => { const n = { ...prev }; delete n[journey.id]; return n; });
       setExpandedAssess(prev => { const n = { ...prev }; delete n[journey.id]; return n; });
       loadData();
     } catch (e) {
-      alert("Transition failed: " + (e.response?.data?.error || e.message));
+      alert("Triage failed: " + (e.response?.data?.error || e.message));
     } finally {
       setTransitioning(false);
+    }
+  };
+
+  const toggleBulkSelect = (journeyId) => {
+    setBulkSelect(prev => {
+      const n = new Set(prev);
+      n.has(journeyId) ? n.delete(journeyId) : n.add(journeyId);
+      return n;
+    });
+  };
+
+  const selectAllTriage = () => {
+    if (bulkSelect.size === triageQueue.length) {
+      setBulkSelect(new Set());
+    } else {
+      setBulkSelect(new Set(triageQueue.map(j => j.id)));
+    }
+  };
+
+  const handleBulkTriage = async () => {
+    if (bulkSelect.size === 0) return;
+    setBulkTriageing(true);
+    setBulkResult(null);
+    try {
+      const { data } = await base44.functions.invoke("bulkTriage", {
+        journey_ids: [...bulkSelect],
+        priority: bulkTriagePriority,
+        notes: bulkTriageNotes || `Bulk triaged as ${bulkTriagePriority}`,
+      });
+      setBulkResult(data);
+      setBulkSelect(new Set());
+      loadData();
+    } catch (e) {
+      alert("Bulk triage failed: " + (e.response?.data?.error || e.message));
+    } finally {
+      setBulkTriageing(false);
     }
   };
 
@@ -637,9 +676,59 @@ export default function Nursing() {
           {/* TRIAGE TAB */}
           {activeTab === "triage" && (
             <div>
-              <h4 className="font-heading font-semibold mb-3 flex items-center gap-2">
-                <GitBranch className="w-4 h-4 text-primary" /> Triage Queue ({triageQueue.length})
-              </h4>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-heading font-semibold flex items-center gap-2">
+                  <GitBranch className="w-4 h-4 text-primary" /> Triage Queue ({triageQueue.length})
+                </h4>
+                {triageQueue.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <button onClick={selectAllTriage} className="text-[10px] px-2 py-0.5 rounded border border-border hover:bg-muted">
+                      {bulkSelect.size === triageQueue.length ? "Deselect All" : "Select All"}
+                    </button>
+                    <button onClick={() => setBulkTriageOpen(true)} disabled={bulkSelect.size === 0}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-medium bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-40 border border-primary/20">
+                      <Zap className="w-3 h-3" /> Bulk Triage ({bulkSelect.size})
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {bulkTriageOpen && (
+                <div className="mb-4 p-4 bg-primary/5 border border-primary/20 rounded-xl">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-semibold flex items-center gap-2"><Zap className="w-4 h-4 text-primary" /> Bulk Triage — {bulkSelect.size} patient{bulkSelect.size !== 1 ? 's' : ''}</p>
+                    <button onClick={() => setBulkTriageOpen(false)} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+                  </div>
+                  {bulkResult ? (
+                    <div className={`p-3 rounded-lg ${bulkResult.failed > 0 ? 'bg-chart-2/10 border border-chart-2/20' : 'bg-chart-3/10 border border-chart-3/20'}`}>
+                      <p className="text-xs font-semibold">Triaged: {bulkResult.triaged}{bulkResult.failed > 0 ? ` — Failed: ${bulkResult.failed}` : ''}</p>
+                      <button onClick={() => { setBulkResult(null); setBulkTriageOpen(false); }} className="text-[10px] text-primary mt-1 hover:underline">Dismiss</button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        {[{ v: "emergency", label: "Emergency" }, { v: "urgent", label: "Urgent" }, { v: "normal", label: "Routine" }].map(cat => (
+                          <button key={cat.v} onClick={() => setBulkTriagePriority(cat.v)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${
+                              bulkTriagePriority === cat.v
+                                ? cat.v === "emergency" ? "bg-destructive/10 text-destructive border-destructive/30 ring-2 ring-destructive/20"
+                                : cat.v === "urgent" ? "bg-chart-2/10 text-chart-2 border-chart-2/30 ring-2 ring-chart-2/20"
+                                : "bg-chart-3/10 text-chart-3 border-chart-3/30 ring-2 ring-chart-3/20"
+                                : "border-border hover:bg-muted"
+                            }`}>{cat.label}</button>
+                        ))}
+                      </div>
+                      <textarea className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs resize-none h-16" value={bulkTriageNotes}
+                        onChange={e => setBulkTriageNotes(e.target.value)} placeholder="Optional triage notes for all selected patients..." />
+                      <button onClick={handleBulkTriage} disabled={bulkTriageing}
+                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
+                        {bulkTriageing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                        {bulkTriageing ? "Triaging..." : `Confirm Bulk Triage as ${bulkTriagePriority}`}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
               {triageQueue.length === 0 ? (
                 <div className="py-12 text-center">
                   <AlertTriangle className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
@@ -660,9 +749,13 @@ export default function Nursing() {
                       : assess?.suggested_priority === "urgent"
                       ? "border-chart-2/40 bg-chart-2/5"
                       : "";
+                    const isSelected = bulkSelect.has(j.id);
                     return (
-                      <div key={j.id} className={`rounded-xl p-4 border ${assess ? suggestedColor || "border-border/40" : "border-border/40"} ${assess ? "bg-muted/20" : "bg-muted/20"}`}>
-                        <div className="flex items-start justify-between gap-4">
+                      <div key={j.id} className={`rounded-xl p-4 border ${assess ? suggestedColor || "border-border/40" : "border-border/40"} ${isSelected ? "ring-2 ring-primary/30 bg-primary/5" : "bg-muted/20"}`}>
+                        <div className="flex items-start gap-3">
+                          <button onClick={() => toggleBulkSelect(j.id)} className="mt-0.5 flex-shrink-0 text-muted-foreground hover:text-primary">
+                            {isSelected ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
+                          </button>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="font-semibold text-sm">

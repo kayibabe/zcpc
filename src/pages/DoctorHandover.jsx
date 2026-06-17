@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { ArrowRightLeft, Plus, Check, Clock, User, Stethoscope, AlertTriangle, Users, Search, X, Save, Loader2, ClipboardList, ShieldCheck, ClipboardPen, FileDown } from "lucide-react";
+import { ArrowRightLeft, Plus, Check, Clock, User, Stethoscope, AlertTriangle, Users, Search, X, Save, Loader2, ClipboardList, ShieldCheck, ClipboardPen, FileDown, RefreshCw } from "lucide-react";
 import StaffComplianceDashboard from "@/components/StaffComplianceDashboard";
 
 const SHIFT_TYPES = [
@@ -128,6 +128,22 @@ export default function DoctorHandover() {
 
   const shiftColor = (type) => SHIFT_TYPES.find(s => s.value === type)?.color || "";
 
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState(null);
+
+  const syncShiftReports = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const { data } = await base44.functions.invoke("syncShiftReports", {});
+      setSyncResult(data);
+    } catch (e) {
+      setSyncResult({ error: "Sync failed" });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const exportHandoverCSV = async () => {
     setExporting(true);
     try {
@@ -160,6 +176,14 @@ export default function DoctorHandover() {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={syncShiftReports}
+            disabled={syncing}
+            className="inline-flex items-center gap-2 px-4 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            {syncing ? "Syncing..." : "Sync Reports"}
+          </button>
+          <button
             onClick={exportHandoverCSV}
             disabled={exporting}
             className="inline-flex items-center gap-2 px-4 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
@@ -174,6 +198,17 @@ export default function DoctorHandover() {
             <Plus className="w-4 h-4" /> New Handover
           </button>
         </div>
+        {syncResult && !syncResult.error && (
+          <div className="mt-2 p-2.5 bg-chart-3/5 border border-chart-3/20 rounded-lg text-xs text-chart-3">
+            Synced {syncResult.synced_count} handover{ syncResult.synced_count !== 1 ? 's' : ''}
+            {syncResult.skipped_count > 0 && ` (${syncResult.skipped_count} skipped)`}
+          </div>
+        )}
+        {syncResult?.error && (
+          <div className="mt-2 p-2.5 bg-destructive/5 border border-destructive/20 rounded-lg text-xs text-destructive">
+            {syncResult.error}
+          </div>
+        )}
       </div>
 
       <div className="mb-4 border-b border-border flex gap-1">

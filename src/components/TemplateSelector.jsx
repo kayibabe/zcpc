@@ -18,6 +18,8 @@ export default function TemplateSelector({ onSelectTemplate }) {
   const handleSelect = (template) => {
     let prescriptions = [];
     try { prescriptions = JSON.parse(template.default_prescriptions || "[]"); } catch {}
+    let investigations = [];
+    try { investigations = JSON.parse(template.default_investigations || "[]"); } catch {}
 
     const consultData = {
       chief_complaint: template.subjective_template || "",
@@ -25,10 +27,17 @@ export default function TemplateSelector({ onSelectTemplate }) {
       physical_examination: template.objective_template || "",
       assessment: template.assessment_template || "",
       plan: template.plan_template || "",
-      clinical_notes: `Template: ${template.name} (${template.icd10_code || "No ICD-10"})`,
+      clinical_notes: `Template: ${template.name} (${template.icd10_code || "No ICD-10"})${template.treatment_plan ? "\n\nTreatment Plan:\n" + template.treatment_plan : ""}`,
     };
 
-    onSelectTemplate?.({ consultData, prescriptions, diagnosis: template.diagnosis_name, icd10: template.icd10_code });
+    onSelectTemplate?.({
+      consultData,
+      prescriptions,
+      investigations,
+      diagnosis: template.diagnosis_name,
+      icd10: template.icd10_code,
+      treatmentPlan: template.treatment_plan || "",
+    });
     setExpanded(false);
   };
 
@@ -71,8 +80,9 @@ export default function TemplateSelector({ onSelectTemplate }) {
                       onClick={() => handleSelect(t)}
                       className="text-left px-3 py-2 rounded border border-border hover:border-primary hover:bg-primary/5 transition-all text-sm"
                     >
-                      <p className="font-medium">{t.name}</p>
-                      <p className="text-xs text-muted-foreground">{t.diagnosis_name}{t.icd10_code ? ` — ${t.icd10_code}` : ""}</p>
+                      <p className="font-medium text-xs">{t.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{t.diagnosis_name}{t.icd10_code ? ` — ${t.icd10_code}` : ""}</p>
+                      {t.treatment_plan && <p className="text-[10px] text-primary/60 mt-0.5">+ Treatment Plan</p>}
                     </button>
                   ))}
                 </div>

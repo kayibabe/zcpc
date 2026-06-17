@@ -38,6 +38,10 @@
       "type": "string",
       "description": "SOAP - Plan section template"
     },
+    "treatment_plan": {
+      "type": "string",
+      "description": "Standardized treatment protocol \u2014 investigations, medications, follow-up schedule"
+    },
     "default_prescriptions": {
       "type": "string",
       "description": "JSON array of common prescriptions for this template"
@@ -45,6 +49,10 @@
     "default_vitals": {
       "type": "string",
       "description": "JSON of default vital sign checks"
+    },
+    "default_investigations": {
+      "type": "string",
+      "description": "JSON array of recommended lab/imaging investigations"
     },
     "is_active": {
       "type": "boolean",
@@ -54,5 +62,6 @@
   "required": [
     "name",
     "category"
-  ]
+  ],
+  "description": "Standardized clinical templates with SOAP notes, prescriptions, investigations, and treatment plans"
 }
