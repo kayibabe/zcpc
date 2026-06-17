@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { BedDouble, Plus, Save, Building, DoorOpen, FileText, Loader2, LayoutDashboard } from "lucide-react";
+import { BedDouble, Plus, Save, Building, DoorOpen, FileText, Loader2, LayoutDashboard, ArrowRightLeft, AlertCircle } from "lucide-react";
+import WardTransferModal from "@/components/WardTransferModal";
+import IncidentReportForm from "@/components/IncidentReportForm";
 import DepartmentDashboard from "@/components/DepartmentDashboard";
 import InpatientDashboard from "@/components/InpatientDashboard";
 import WardBedDashboard from "@/components/WardBedDashboard";
@@ -20,6 +22,9 @@ export default function Inpatient() {
   const [bedForm, setBedForm] = useState({ bed_number: "", ward_id: "", type: "general", rate_per_day: "0" });
   const [dischargeSummary, setDischargeSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [showIncidentForm, setShowIncidentForm] = useState(false);
+  const [selectedAdmission, setSelectedAdmission] = useState(null);
 
   useEffect(() => {
     async function load() {
@@ -241,6 +246,8 @@ export default function Inpatient() {
                     <td className="py-2.5 px-3 capitalize">{a.admission_type}</td>
                     <td className="py-2.5 px-3">
                       <div className="flex gap-1 flex-wrap">
+                        <button onClick={() => { setSelectedAdmission(a); setShowTransferModal(true); }} className="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium hover:bg-primary/20"><ArrowRightLeft className="w-3 h-3 inline mr-0.5" /> Transfer</button>
+                        <button onClick={() => { setSelectedAdmission(a); setShowIncidentForm(true); }} className="px-2 py-1 bg-destructive/10 text-destructive rounded text-xs font-medium hover:bg-destructive/20"><AlertCircle className="w-3 h-3 inline mr-0.5" /> Report</button>
                         <button onClick={() => dischargePatient(a.id, a.bed_id)} className="px-2 py-1 bg-chart-2/10 text-chart-2 rounded text-xs font-medium hover:bg-chart-2/20">Discharge</button>
                         <button onClick={() => generateSummary(a.id)} className="px-2 py-1 bg-chart-1/10 text-chart-1 rounded text-xs font-medium hover:bg-chart-1/20" disabled={summaryLoading}><FileText className="w-3 h-3 inline mr-0.5" /> Summary</button>
                       </div>
@@ -308,6 +315,35 @@ export default function Inpatient() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Ward Transfer Modal */}
+      {showTransferModal && selectedAdmission && (
+        <WardTransferModal
+          patient={patients.find(p => p.id === selectedAdmission.patient_id)}
+          admission={selectedAdmission}
+          onComplete={async () => {
+            setShowTransferModal(false);
+            const updated = await base44.entities.Admission.filter({ status: "admitted" }, "-created_date", 50);
+            setAdmissions(updated);
+            const b = await base44.entities.Bed.list("", 200);
+            setBeds(b);
+          }}
+          onCancel={() => setShowTransferModal(false)}
+        />
+      )}
+
+      {/* Incident Report Form */}
+      {showIncidentForm && selectedAdmission && (
+        <IncidentReportForm
+          patientId={selectedAdmission.patient_id}
+          visitId={selectedAdmission.visit_id}
+          onComplete={async () => {
+            setShowIncidentForm(false);
+            alert("Incident report submitted for review");
+          }}
+          onCancel={() => setShowIncidentForm(false)}
+        />
       )}
     </div>
   );
