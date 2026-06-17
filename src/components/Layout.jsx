@@ -8,7 +8,7 @@ import {
   Scan, Pill, BedDouble, Baby, Receipt, Shield, UserCircle,
   ChevronLeft, ChevronRight, LogOut, Menu, X, Activity,
   Bell, Search, ClipboardPen, Monitor, FileBarChart, Trash2, PenTool,
-  ArrowRightLeft, ShieldCheck, ClipboardCheck, Scissors, GitBranch, Clock
+  ArrowRightLeft, ShieldCheck, ClipboardCheck, Scissors, GitBranch, Clock, Zap
 } from "lucide-react";
 
 const ALL_NAV_GROUPS = [
@@ -33,6 +33,7 @@ const ALL_NAV_GROUPS = [
     items: [
       { label: "Calendar", path: "/calendar", icon: CalendarDays, roles: ["admin", "user"] },
       { label: "Doctor Schedule", path: "/doctor-schedule", icon: Clock, roles: ["admin", "user"] },
+      { label: "Staff Shifts", path: "/staff-shifts", icon: Zap, roles: ["admin", "user"] },
       { label: "Queue Display", path: "/queue", icon: Monitor, roles: ["admin", "user"] },
       { label: "Triage", path: "/triage", icon: ClipboardCheck, roles: ["admin", "user"] },
       { label: "Journey Map", path: "/journey-map", icon: GitBranch, roles: ["admin", "user"] },

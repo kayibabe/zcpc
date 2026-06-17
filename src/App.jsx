@@ -32,6 +32,7 @@ import TriageSummary from '@/pages/TriageSummary';
 import SurgeryCalendar from '@/pages/SurgeryCalendar';
 import JourneyMap from '@/pages/JourneyMap';
 import DoctorScheduling from '@/pages/DoctorSchedule';
+import StaffShiftDashboard from '@/pages/StaffShiftDashboard';
 import Layout from '@/components/Layout';
 
 const AuthenticatedApp = () => {
@@ -86,6 +87,7 @@ const AuthenticatedApp = () => {
         <Route path="/surgery-calendar" element={<SurgeryCalendar />} />
         <Route path="/journey-map" element={<JourneyMap />} />
         <Route path="/doctor-schedule" element={<DoctorScheduling />} />
+        <Route path="/staff-shifts" element={<StaffShiftDashboard />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
