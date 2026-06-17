@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { BedDouble, Plus, Save, Building, DoorOpen, FileText, Loader2, LayoutDashboard } from "lucide-react";
 import DepartmentDashboard from "@/components/DepartmentDashboard";
 import InpatientDashboard from "@/components/InpatientDashboard";
+import WardBedDashboard from "@/components/WardBedDashboard";
 
 export default function Inpatient() {
   const [wards, setWards] = useState([]);
@@ -160,10 +161,11 @@ export default function Inpatient() {
 
       <div className="bg-card rounded-xl border border-border/60 shadow-sm">
         <div className="border-b border-border flex">
-          {["dashboard", "beds", "admissions"].map(t => <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-3 text-sm font-medium capitalize ${activeTab === t ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}>{t}</button>)}
+          {["dashboard", "ward-view", "beds", "admissions"].map(t => <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-3 text-sm font-medium capitalize ${activeTab === t ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}>{t}</button>)}
         </div>
         <div className="p-4">
           {activeTab === "dashboard" && <InpatientDashboard />}
+          {activeTab === "ward-view" && <WardBedDashboard />}
 
           {activeTab === "beds" && (
             <div>
