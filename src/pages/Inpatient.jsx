@@ -102,7 +102,15 @@ export default function Inpatient() {
 
   if (loading) return <div className="page-container flex justify-center py-20"><div className="w-8 h-8 border-3 border-muted border-t-primary rounded-full animate-spin" /></div>;
 
-  const bedStatusColors = { available: "bg-chart-2/10 text-chart-2 border-chart-2/30", occupied: "bg-destructive/10 text-destructive border-destructive/30", reserved: "bg-chart-4/10 text-chart-4 border-chart-4/30", cleaning: "bg-muted text-muted-foreground border-muted", maintenance: "bg-muted text-muted-foreground border-muted" };
+  const bedStatusColors = { available: "bg-chart-2/10 text-chart-2 border-chart-2/30", occupied: "bg-destructive/10 text-destructive border-destructive/30", reserved: "bg-chart-4/10 text-chart-4 border-chart-4/30", cleaning: "bg-chart-2/10 text-chart-2 border-chart-2/30", maintenance: "bg-triage-semi/10 text-triage-semi border-triage-semi/30" };
+  const bedStatusCycle = { available: "reserved", reserved: "cleaning", cleaning: "maintenance", maintenance: "available" };
+
+  const toggleBedStatus = async (bedId, currentStatus) => {
+    const next = bedStatusCycle[currentStatus];
+    if (!next) return;
+    await base44.entities.Bed.update(bedId, { status: next });
+    setBeds(beds.map(b => b.id === bedId ? { ...b, status: next } : b));
+  };
 
   return (
     <div className="page-container">
@@ -166,7 +174,16 @@ export default function Inpatient() {
                     <h4 className="font-heading font-semibold text-sm mb-2">{w.name} <span className="text-muted-foreground font-normal">({w.type} • Floor {w.floor || "—"})</span></h4>
                     <div className="flex flex-wrap gap-2">
                       {wardBeds.map(b => (
-                        <span key={b.id} className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${bedStatusColors[b.status] || "bg-muted text-muted-foreground"}`}>{b.bed_number}</span>
+                        <button
+                          key={b.id}
+                          onClick={() => b.status !== "occupied" && toggleBedStatus(b.id, b.status)}
+                          disabled={b.status === "occupied"}
+                          title={b.status === "occupied" ? "Occupied — discharge first" : `Click to change: ${b.status} → ${bedStatusCycle[b.status]}`}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all hover:shadow-sm ${bedStatusColors[b.status] || "bg-muted text-muted-foreground"} ${b.status !== "occupied" ? "cursor-pointer hover:scale-105" : "cursor-not-allowed opacity-70"}`}
+                        >
+                          {b.bed_number}
+                          {b.status !== "occupied" && <span className="ml-1 text-[9px] opacity-60">↻</span>}
+                        </button>
                       ))}
                       {wardBeds.length === 0 && <span className="text-xs text-muted-foreground py-1">No beds</span>}
                     </div>
