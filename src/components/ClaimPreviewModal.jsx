@@ -14,6 +14,7 @@ const VALIDATION_RULES = [
 export default function ClaimPreviewModal({ claim, patients, invoices, schemes, onClose, onExport }) {
   const [exporting, setExporting] = useState(false);
   const [validations, setValidations] = useState([]);
+  const [exportError, setExportError] = useState(null);
 
   useEffect(() => {
     // Run all validation rules
@@ -35,9 +36,15 @@ export default function ClaimPreviewModal({ claim, patients, invoices, schemes, 
       alert('Please fix validation errors before exporting');
       return;
     }
+    setExportError(null);
     setExporting(true);
-    await onExport();
-    setExporting(false);
+    try {
+      await onExport();
+    } catch (e) {
+      setExportError(e.message || 'Export failed. Please check the claim data and try again.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -80,6 +87,14 @@ export default function ClaimPreviewModal({ claim, patients, invoices, schemes, 
             <p className="text-sm font-semibold mt-1 font-mono">MWK {(claim.co_pay_amount || 0).toLocaleString()}</p>
           </div>
         </div>
+
+        {/* Error Alert */}
+        {exportError && (
+          <div className="mb-6 p-3 bg-destructive/5 border border-destructive/20 rounded-lg">
+            <p className="text-xs font-semibold text-destructive mb-1">Export Error</p>
+            <p className="text-xs text-destructive">{exportError}</p>
+          </div>
+        )}
 
         {/* Validation Checklist */}
         <div className="mb-6">
@@ -134,7 +149,7 @@ export default function ClaimPreviewModal({ claim, patients, invoices, schemes, 
             onClick={handleExport}
             disabled={!allPassed || exporting}
             className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-              allPassed
+              allPassed && !exportError
                 ? "bg-chart-3 text-white hover:bg-chart-3/90"
                 : "bg-muted text-muted-foreground cursor-not-allowed"
             } disabled:opacity-50`}
@@ -143,7 +158,10 @@ export default function ClaimPreviewModal({ claim, patients, invoices, schemes, 
             {exporting ? "Exporting..." : "Export Claim Form"}
           </button>
           <button
-            onClick={onClose}
+            onClick={() => {
+              setExportError(null);
+              onClose();
+            }}
             className="px-4 py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted"
           >
             Cancel
