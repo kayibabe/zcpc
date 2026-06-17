@@ -92,6 +92,7 @@ export default function DoctorHandover() {
       await base44.entities.DoctorHandover.create({
         ...form,
         active_patients: activePatientsJson,
+        linked_patient_ids: JSON.stringify(selectedPatients),
         handover_date: new Date().toISOString(),
       });
 

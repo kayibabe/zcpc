@@ -29,13 +29,17 @@
       "type": "string",
       "description": "JSON array of {patient_id, name, diagnosis, ward, priority} for all active patients"
     },
+    "linked_patient_ids": {
+      "type": "string",
+      "description": "JSON array of patient IDs referenced in this handover, for filtering by patient"
+    },
     "critical_cases": {
       "type": "string",
-      "description": "JSON array of {patient_id, name, condition, notes} for critical/ICU patients"
+      "description": "JSON list of {patient_id, name, condition, notes} for critical/ICU patients"
     },
     "pending_investigations": {
       "type": "string",
-      "description": "JSON list of lab/imaging orders awaiting results"
+      "description": "Lab/imaging orders awaiting results"
     },
     "pending_consults": {
       "type": "string",

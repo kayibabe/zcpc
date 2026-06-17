@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Stethoscope, Heart, FileText, Pill, Activity, Plus, Save, Search, AlertTriangle, ShieldAlert, FlaskConical, ArrowRight, CheckCircle, GitBranch, PenTool } from "lucide-react";
+import { Stethoscope, Heart, FileText, Pill, Activity, Plus, Save, Search, AlertTriangle, ShieldAlert, FlaskConical, ArrowRight, CheckCircle, GitBranch, PenTool, ArrowRightLeft, Clock, Users, FileBadge } from "lucide-react";
 import TemplateSelector from "@/components/TemplateSelector";
 import VitalSignsChart from "@/components/VitalSignsChart";
 import PatientJourneyTimeline from "@/components/PatientJourneyTimeline";
@@ -27,6 +27,7 @@ export default function Clinical() {
   const [labOrders, setLabOrders] = useState([]);
   const [journey, setJourney] = useState(null);
   const [transitioning, setTransitioning] = useState(false);
+  const [handovers, setHandovers] = useState([]);
 
   // Signature state
   const [signingDoc, setSigningDoc] = useState(null); // { document_type, document_id }
@@ -65,6 +66,8 @@ export default function Clinical() {
     setDiagnoses(dList);
     setLabOrders(lList);
     setJourney(jList[0] || null);
+    // Load handover history for this patient
+    loadPatientHandovers(visit.patient_id);
     // Run CDS checks
     runCdsChecks(visit, dList, lList);
   };
@@ -124,6 +127,28 @@ export default function Clinical() {
     await base44.entities.Visit.update(selectedVisit.id, { queue_status: "in_consultation" });
     // Trigger signature capture
     setSigningDoc({ document_type: "consultation", document_id: consultation.id });
+  };
+
+  const loadPatientHandovers = async (patientId) => {
+    try {
+      const allHandovers = await base44.entities.DoctorHandover.list("-created_date", 100);
+      const relevant = allHandovers.filter(h => {
+        if (!h.linked_patient_ids) return false;
+        try {
+          const ids = JSON.parse(h.linked_patient_ids);
+          return ids.includes(patientId);
+        } catch { return false; }
+      });
+      // Also check active_patients JSON for older records
+      const fromLegacy = allHandovers.filter(h => {
+        if (h.linked_patient_ids) return false; // already caught above
+        try {
+          const ap = JSON.parse(h.active_patients || "[]");
+          return ap.some(p => p.patient_id === patientId);
+        } catch { return false; }
+      });
+      setHandovers([...relevant, ...fromLegacy]);
+    } catch { setHandovers([]); }
   };
 
   const transitionWorkflow = async (nextStage, notes = "") => {
@@ -314,7 +339,7 @@ export default function Clinical() {
           ) : (
             <div className="bg-card rounded-xl border border-border/60 shadow-sm">
               <div className="border-b border-border flex">
-                {["vitals", "consultation", "prescriptions", "signatures"].map(tab => (
+                {["vitals", "consultation", "prescriptions", "handovers", "signatures"].map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-3 text-sm font-medium transition-colors capitalize ${activeTab === tab ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}>{tab}</button>
                 ))}
               </div>
@@ -501,6 +526,90 @@ export default function Clinical() {
                       <button onClick={addPrescItem} className="px-3 py-1.5 border border-border rounded-lg text-sm hover:bg-muted"><Plus className="w-3 h-3 inline mr-1" /> Add Drug</button>
                       <button onClick={savePrescription} className="px-4 py-1.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90"><Save className="w-3 h-3 inline mr-1" /> Save Prescription</button>
                     </div>
+                  </div>
+                )}
+
+                {activeTab === "handovers" && (
+                  <div>
+                    <h4 className="font-heading font-semibold mb-4 flex items-center gap-2">
+                      <ArrowRightLeft className="w-4 h-4 text-primary" /> Shift Handover History
+                    </h4>
+                    {handovers.length === 0 ? (
+                      <div className="py-10 text-center">
+                        <ArrowRightLeft className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No handover records for this patient.</p>
+                        <p className="text-xs text-muted-foreground/60 mt-1">Handovers appear when included in a doctor's shift handover report.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {handovers.map(h => (
+                          <div key={h.id} className={`p-4 rounded-lg border transition-all ${
+                            h.acknowledged
+                              ? "bg-clinical-normal/5 border-clinical-normal/20"
+                              : "bg-chart-2/5 border-chart-2/20"
+                          }`}>
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <div className="flex items-center gap-2 mb-0.5">
+                                  <ArrowRightLeft className="w-3.5 h-3.5 text-primary" />
+                                  <span className="font-medium text-sm">
+                                    {h.from_doctor_id?.slice(0, 8)} → {h.to_doctor_id?.slice(0, 8)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <FileBadge className="w-3 h-3" />
+                                  <span className="capitalize">{h.shift_type}</span>
+                                  <Clock className="w-3 h-3 ml-1" />
+                                  {new Date(h.handover_date).toLocaleString("en-GB", {
+                                    day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+                                  })}
+                                </div>
+                              </div>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                h.acknowledged
+                                  ? "bg-clinical-normal/10 text-clinical-normal"
+                                  : h.status === "escalated"
+                                  ? "bg-destructive/10 text-destructive"
+                                  : "bg-chart-2/10 text-chart-2"
+                              }`}>
+                                {h.status}
+                              </span>
+                            </div>
+
+                            {/* Relevant notes from this handover */}
+                            <div className="space-y-1 text-xs">
+                              {h.critical_cases && (
+                                <p className="text-destructive flex items-start gap-1">
+                                  <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                                  <span><strong>Critical:</strong> {h.critical_cases}</span>
+                                </p>
+                              )}
+                              {h.treatment_updates && (
+                                <p className="text-primary flex items-start gap-1">
+                                  <Stethoscope className="w-3 h-3 mt-0.5 shrink-0" />
+                                  <span><strong>Updates:</strong> {h.treatment_updates}</span>
+                                </p>
+                              )}
+                              {h.pending_investigations && (
+                                <p className="text-chart-2 flex items-start gap-1">
+                                  <FlaskConical className="w-3 h-3 mt-0.5 shrink-0" />
+                                  <span><strong>Pending:</strong> {h.pending_investigations}</span>
+                                </p>
+                              )}
+                              {h.discharge_planning && (
+                                <p className="text-chart-3 flex items-start gap-1">
+                                  <CheckCircle className="w-3 h-3 mt-0.5 shrink-0" />
+                                  <span><strong>Discharge:</strong> {h.discharge_planning}</span>
+                                </p>
+                              )}
+                              {h.general_notes && (
+                                <p className="text-muted-foreground"><strong>Notes:</strong> {h.general_notes}</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
