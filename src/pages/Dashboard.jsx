@@ -15,10 +15,10 @@ const CHART_COLORS = ["hsl(194, 65%, 42%)", "hsl(38, 92%, 50%)", "hsl(160, 60%, 
 
 function StatCard({ icon: Icon, label, value, sub, color, to }) {
   const content = (
-    <div className="stat-card flex flex-col gap-2 group cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</p>
+    <div className="stat-card flex flex-col gap-1 items-center justify-center group cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200">
       <p className="text-3xl font-bold tracking-tight font-mono tabular-nums">{value}</p>
-      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+      <p className="text-xs text-muted-foreground text-center">{label}</p>
+      {sub && <p className="text-xs text-muted-foreground text-center">{sub}</p>}
     </div>
   );
   if (to) return <Link to={to}>{content}</Link>;
