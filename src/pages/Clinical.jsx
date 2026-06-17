@@ -61,27 +61,41 @@ export default function Clinical() {
   const selectVisit = async (visit) => {
     setSelectedVisit(visit);
     setCdsWarnings([]);
-    const [vList, cList, pList, dList, lList, jList] = await Promise.all([
-      base44.entities.VitalSigns.filter({ visit_id: visit.id }, "-created_date", 10),
-      base44.entities.Consultation.filter({ visit_id: visit.id }, "-created_date", 10),
-      base44.entities.Prescription.filter({ visit_id: visit.id }, "-created_date", 10),
-      base44.entities.Diagnosis.filter({ visit_id: visit.id }, "-created_date", 20),
-      base44.entities.LabOrder.filter({ patient_id: visit.patient_id }, "-created_date", 30),
-      base44.entities.PatientJourney.filter({ visit_id: visit.id, status: "active" }, "-created_date", 1),
-    ]);
-    setVitals(vList[0] || null);
-    setConsultations(cList);
-    setPrescriptions(pList);
-    setDiagnoses(dList);
-    setLabOrders(lList);
-    setJourney(jList[0] || null);
-    // Load handover history for this patient
-    loadPatientHandovers(visit.patient_id);
-    // Load death certificates
-    const dcs = await base44.entities.DeathCertificate.filter({ patient_id: visit.patient_id }, "-created_date", 10);
-    setDeathCerts(dcs);
-    // Run CDS checks
-    runCdsChecks(visit, dList, lList);
+    try {
+      // First batch: visit-specific data (3 calls)
+      const [vList, cList, pList] = await Promise.all([
+        base44.entities.VitalSigns.filter({ visit_id: visit.id }, "-created_date", 10),
+        base44.entities.Consultation.filter({ visit_id: visit.id }, "-created_date", 10),
+        base44.entities.Prescription.filter({ visit_id: visit.id }, "-created_date", 10),
+      ]);
+      setVitals(vList[0] || null);
+      setConsultations(cList);
+      setPrescriptions(pList);
+
+      // Second batch: patient-wide data (2 calls)
+      const [dList, lList] = await Promise.all([
+        base44.entities.Diagnosis.filter({ visit_id: visit.id }, "-created_date", 20),
+        base44.entities.LabOrder.filter({ patient_id: visit.patient_id }, "-created_date", 30),
+      ]);
+      setDiagnoses(dList);
+      setLabOrders(lList);
+
+      // Third batch: journey and handovers (2 calls)
+      const [jList] = await Promise.all([
+        base44.entities.PatientJourney.filter({ visit_id: visit.id, status: "active" }, "-created_date", 1),
+        loadPatientHandovers(visit.patient_id),
+      ]);
+      setJourney(jList[0] || null);
+
+      // Load death certificates separately
+      const dcs = await base44.entities.DeathCertificate.filter({ patient_id: visit.patient_id }, "-created_date", 10);
+      setDeathCerts(dcs);
+
+      // Run CDS checks
+      runCdsChecks(visit, dList, lList);
+    } catch (e) {
+      console.error("Error loading visit data:", e);
+    }
   };
 
   const getPatientName = (pid) => {
