@@ -299,14 +299,14 @@ export default function Dashboard() {
 
       <InventoryAlerts />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-        <StatCard icon={Users} label="Registered Patients" value={stats.patients} color="bg-primary" to="/reception" />
-        <StatCard icon={Calendar} label="Today's Appts" value={report?.total_appointments_today ?? stats.appointments} color="bg-triage-semi" sub={report ? `${report.appointments_completed} completed` : null} to="/appointments" />
-        <StatCard icon={FlaskConical} label="Pending Lab Orders" value={report?.pending_lab_orders ?? stats.labOrders} color="bg-chart-3" to="/lab" />
-        <StatCard icon={BedDouble} label="Occupied Beds" value={report?.active_inpatients ?? stats.occupiedBeds} color="bg-chart-4" to="/inpatient" />
-        <StatCard icon={Pill} label="Drugs Low Stock" value={report?.drugs_low_stock ?? stats.drugs} color="bg-destructive" to="/pharmacy" />
-        <StatCard icon={Receipt} label="Revenue (MWK)" value={(report?.total_revenue_mwk ?? stats.revenue).toLocaleString()} color="bg-chart-5" to="/billing" />
-      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8 items-center">
+         <StatCard icon={Users} label="Registered Patients" value={stats.patients} color="bg-primary" to="/reception" />
+         <StatCard icon={Calendar} label="Today's Appts" value={report?.total_appointments_today ?? stats.appointments} color="bg-triage-semi" sub={report ? `${report.appointments_completed} completed` : null} to="/appointments" />
+         <StatCard icon={FlaskConical} label="Pending Lab Orders" value={report?.pending_lab_orders ?? stats.labOrders} color="bg-chart-3" to="/lab" />
+         <StatCard icon={BedDouble} label="Occupied Beds" value={report?.active_inpatients ?? stats.occupiedBeds} color="bg-chart-4" to="/inpatient" />
+         <StatCard icon={Pill} label="Drugs Low Stock" value={report?.drugs_low_stock ?? stats.drugs} color="bg-destructive" to="/pharmacy" />
+         <StatCard icon={Receipt} label="Revenue (MWK)" value={(report?.total_revenue_mwk ?? stats.revenue).toLocaleString()} color="bg-chart-5" to="/billing" />
+       </div>
 
       {report && (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-8">
