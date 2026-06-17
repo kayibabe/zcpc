@@ -11,6 +11,7 @@ import ClaimsCalendar from "@/components/ClaimsCalendar";
 import ClaimRejectionTracker from "@/components/ClaimRejectionTracker";
 import ClaimApprovalWorkflow from "@/components/ClaimApprovalWorkflow";
 import ClaimSummaryDashboard from "@/components/ClaimSummaryDashboard";
+import ClaimPreviewModal from "@/components/ClaimPreviewModal";
 import { validateClaim } from "@/lib/claimValidation";
 
 const STATUS_COLORS = {
@@ -49,6 +50,7 @@ export default function InsuranceClaimPortal() {
   const [selectedForBatch, setSelectedForBatch] = useState([]);
   const [validationErrors, setValidationErrors] = useState([]);
   const [batchSyncing, setBatchSyncing] = useState(false);
+  const [previewClaimId, setPreviewClaimId] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -160,10 +162,19 @@ export default function InsuranceClaimPortal() {
   };
 
   const exportClaimForm = async (claim) => {
-    if (!claim.invoice_id || !claim.scheme_id) {
-      alert("Invoice and scheme are required to export the claim form");
+    const validation = validateClaim(claim, patients, invoices);
+    if (!validation.valid) {
+      alert("Cannot export:\n\n" + validation.errors.join("\n"));
       return;
     }
+
+    // Validate scheme exists
+    const scheme = schemes.find(s => s.id === claim.scheme_id);
+    if (!scheme) {
+      alert("Insurance scheme is invalid or was deleted. Please update the claim with a valid scheme.");
+      return;
+    }
+
     setExportingClaimId(claim.id);
     try {
       const { data } = await base44.functions.invoke('exportClaimFormPdf', {
@@ -177,7 +188,7 @@ export default function InsuranceClaimPortal() {
       link.download = data.filename || `claim_${claim.id.slice(0, 8)}.pdf`;
       link.click();
     } catch (e) {
-      alert("Export failed: " + e.response?.data?.error || e.message);
+      alert("Export failed: " + (e.response?.data?.error || e.message));
     } finally {
       setExportingClaimId(null);
     }
@@ -476,6 +487,13 @@ export default function InsuranceClaimPortal() {
                           </button>
                         )}
                         <button
+                          onClick={() => setPreviewClaimId(claim.id)}
+                          className="px-2 py-1 bg-chart-3/10 text-chart-3 rounded text-xs hover:bg-chart-3/20"
+                          title="Preview & validate before export"
+                        >
+                          Preview
+                        </button>
+                        <button
                           onClick={() => setShowDetails(claim.id)}
                           className="px-2 py-1 bg-primary/10 text-primary rounded text-xs hover:bg-primary/20"
                         >
@@ -490,6 +508,22 @@ export default function InsuranceClaimPortal() {
           </div>
         )}
       </div>
+
+      {/* Claim Preview Modal */}
+      {previewClaimId && (
+        <ClaimPreviewModal
+          claim={claims.find(c => c.id === previewClaimId)}
+          patients={patients}
+          invoices={invoices}
+          schemes={schemes}
+          onClose={() => setPreviewClaimId(null)}
+          onExport={async () => {
+            const claimToExport = claims.find(c => c.id === previewClaimId);
+            await exportClaimForm(claimToExport);
+            setPreviewClaimId(null);
+          }}
+        />
+      )}
 
       {/* Claim Details Modal */}
       {showDetails && (
