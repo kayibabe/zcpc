@@ -6,6 +6,8 @@ import {
 } from "lucide-react";
 import DigitalClaimFormBuilder from "@/components/DigitalClaimFormBuilder";
 import ClaimStatusTracker from "@/components/ClaimStatusTracker";
+import ClaimsDashboard from "@/components/ClaimsDashboard";
+import ClaimsCalendar from "@/components/ClaimsCalendar";
 
 const STATUS_COLORS = {
   pending: "bg-chart-4/10 text-chart-4 border-chart-4/20",
@@ -27,6 +29,7 @@ export default function InsuranceClaimPortal() {
   const [searchInput, setSearchInput] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState("list");
 
   const [form, setForm] = useState({
     invoice_id: "",
@@ -206,7 +209,35 @@ export default function InsuranceClaimPortal() {
         </div>
       </div>
 
-      {/* Insurance Claims Tracker */}
+      {/* Tabs */}
+      <div className="mb-6 border-b border-border flex gap-4">
+        <button
+          onClick={() => setActiveTab("list")}
+          className={`px-4 py-3 text-sm font-medium transition-colors ${
+            activeTab === "list" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Claims List
+        </button>
+        <button
+          onClick={() => setActiveTab("dashboard")}
+          className={`px-4 py-3 text-sm font-medium transition-colors ${
+            activeTab === "dashboard" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Dashboard
+        </button>
+        <button
+          onClick={() => setActiveTab("calendar")}
+          className={`px-4 py-3 text-sm font-medium transition-colors ${
+            activeTab === "calendar" ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Calendar
+        </button>
+      </div>
+
+      {/* Insurance Claims Tracker (always visible) */}
       <div className="mb-6">
         <ClaimStatusTracker />
       </div>
