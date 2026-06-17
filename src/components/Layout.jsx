@@ -115,10 +115,14 @@ export default function Layout() {
   const location = useLocation();
 
   const toggleGroupCollapse = (groupLabel) => {
-    setCollapsedGroups(prev => ({
-      ...prev,
-      [groupLabel]: !prev[groupLabel]
-    }));
+    setCollapsedGroups(prev => {
+      // If clicking an already expanded group, close it
+      if (prev[groupLabel] === false) {
+        return {};
+      }
+      // Otherwise, expand only this group and collapse all others
+      return { [groupLabel]: false };
+    });
   };
 
   useEffect(() => {
@@ -150,7 +154,7 @@ export default function Layout() {
           const visibleItems = group.items.filter(item => item.roles.includes(userRole));
           if (visibleItems.length === 0) return null;
           const isMainGroup = group.label === "Main";
-          const isGroupCollapsed = collapsedGroups[group.label];
+          const isGroupCollapsed = collapsedGroups[group.label] !== false;
           return (
           <div key={group.label}>
             <div className="flex items-center justify-between">
