@@ -122,5 +122,34 @@
     "infection_type",
     "date_identified"
   ],
-  "description": "Infection Prevention & Control surveillance \u2014 tracking hospital-acquired infections, organisms, and outcomes"
+  "description": "Infection Prevention & Control surveillance \u2014 tracking hospital-acquired infections, organisms, and outcomes",
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }
