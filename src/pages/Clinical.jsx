@@ -380,16 +380,16 @@ export default function Clinical() {
   if (loading) return <div className="page-container flex justify-center py-20"><div className="w-8 h-8 border-3 border-muted border-t-primary rounded-full animate-spin" /></div>;
 
   return (
-    <div className="page-container">
-      <h2 className="section-title mb-6">Clinical</h2>
+    <div className="page-container space-y-6">
+      <h1 className="text-3xl font-bold tracking-tight">Clinical</h1>
       <div className="mb-6">
         <DepartmentDashboard department="clinical" />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Visit List */}
-        <div className="bg-card rounded-xl border border-border/60 shadow-sm">
+        <div className="bg-white rounded-lg border border-border">
           <div className="p-4 border-b border-border">
-            <h3 className="font-heading font-semibold">Waiting Queue</h3>
+            <h3 className="font-heading text-sm font-semibold">Patient Queue</h3>
           </div>
           <div className="divide-y divide-border max-h-[600px] overflow-y-auto">
             {visits.map(v => (
@@ -410,8 +410,8 @@ export default function Clinical() {
               <p className="text-muted-foreground">Select a patient from the queue to begin.</p>
             </div>
           ) : (
-            <div className="bg-card rounded-xl border border-border/60 shadow-sm">
-              <div className="border-b border-border flex">
+           <div className="bg-white rounded-lg border border-border">
+             <div className="border-b border-border flex">
                 {["vitals", "consultation", "prescriptions", "handovers", "signatures", "death"].map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-3 text-sm font-medium transition-colors capitalize ${activeTab === tab ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}>{tab}</button>
                 ))}

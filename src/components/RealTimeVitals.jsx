@@ -77,10 +77,10 @@ function VitalCard({ patientName, vitals, connected, compact = false }) {
   }
 
   return (
-    <div className="bg-card rounded-xl border border-border/60 p-4 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-lg border border-border p-4 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-semibold">{patientName}</p>
-        <span className="text-[10px] text-muted-foreground">
+        <p className="text-sm font-semibold text-foreground">{patientName}</p>
+        <span className="text-[10px] text-muted-foreground font-mono">
           {new Date(vitals.recorded_date || vitals.created_date).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
         </span>
       </div>
@@ -93,13 +93,14 @@ function VitalCard({ patientName, vitals, connected, compact = false }) {
           return (
             <div
               key={field}
-              className={`rounded-lg border ${style.border} ${style.bg} p-2 text-center ${style.pulse ? "animate-pulse" : ""}`}
+              className={`rounded-lg border ${style.border} ${style.bg} p-2.5 text-center transition-all ${style.pulse ? "animate-pulse" : "hover:shadow-sm"}`}
             >
-              <Icon className={`w-3.5 h-3.5 mx-auto mb-0.5 ${style.text}`} />
-              <p className={`text-lg font-bold ${style.text}`}>
+              <Icon className={`w-4 h-4 mx-auto mb-1 ${style.text}`} />
+              <p className={`text-base font-bold tabular-nums ${style.text}`}>
                 {value != null ? value : "—"}
               </p>
-              <p className="text-[9px] text-muted-foreground">{range.label} ({range.unit})</p>
+              <p className="text-[9px] text-muted-foreground font-medium">{range.label}</p>
+              <p className="text-[8px] text-muted-foreground">{range.unit}</p>
             </div>
           );
         })}

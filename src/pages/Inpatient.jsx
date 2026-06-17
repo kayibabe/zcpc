@@ -151,10 +151,10 @@ export default function Inpatient() {
   };
 
   return (
-    <div className="page-container">
-      <div className="flex items-center justify-between mb-6">
+    <div className="page-container space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="section-title">Inpatient Management</h2>
+          <h1 className="text-3xl font-bold tracking-tight">Inpatient Management</h1>
           <p className="text-sm text-muted-foreground mt-1">Ward, bed, and admission management</p>
         </div>
         <div className="flex gap-2">
@@ -165,7 +165,7 @@ export default function Inpatient() {
       </div>
 
       {showAdmit && (
-        <div className="bg-card rounded-xl border border-border/60 p-6 shadow-sm mb-6">
+        <div className="bg-white rounded-lg border border-border p-6">
           <h3 className="font-heading text-lg font-semibold mb-4">Admit Patient</h3>
           <form onSubmit={admitPatient} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -196,9 +196,9 @@ export default function Inpatient() {
         <div className="stat-card"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center"><BedDouble className="w-5 h-5 text-destructive" /></div><div><p className="text-sm text-muted-foreground">Admitted Patients</p><p className="text-xl font-bold">{admissions.length}</p></div></div></div>
       </div>
 
-      <div className="bg-card rounded-xl border border-border/60 shadow-sm">
+      <div className="bg-white rounded-lg border border-border">
         <div className="border-b border-border flex">
-          {["dashboard", "ward-view", "beds", "admissions"].map(t => <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-3 text-sm font-medium capitalize ${activeTab === t ? "border-b-2 border-primary text-primary" : "text-muted-foreground hover:text-foreground"}`}>{t}</button>)}
+          {["dashboard", "ward-view", "beds", "admissions"].map(t => <button key={t} onClick={() => setActiveTab(t)} className={`px-4 py-3 text-sm font-medium capitalize ${activeTab === t ? "border-b-2 border-primary text-primary font-semibold" : "text-muted-foreground hover:text-foreground"}`}>{t}</button>)}
         </div>
         <div className="p-4">
           {activeTab === "dashboard" && <InpatientDashboard />}
@@ -264,7 +264,7 @@ export default function Inpatient() {
       {dischargeSummary && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => setDischargeSummary(null)} />
-          <div className="relative bg-card rounded-xl p-6 shadow-2xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto">
+          <div className="relative bg-white rounded-lg p-6 shadow-lg w-full max-w-2xl mx-4 max-h-[80vh] overflow-y-auto border border-border">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-heading text-lg font-semibold">Discharge Summary</h3>
               <button onClick={() => setDischargeSummary(null)} className="p-1 rounded-lg hover:bg-muted">✕</button>
