@@ -379,8 +379,9 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground py-12 text-center">No wards configured</p>
           )}
         </div>
+      </div>
 
-        <div className="bg-card rounded-xl border border-border/60 p-5 shadow-sm">
+      <div className="bg-card rounded-xl border border-border/60 p-5 shadow-sm mb-8">
           <h3 className="font-heading text-lg font-semibold mb-4">Current Queue Status</h3>
           {Object.keys(occupancyData.queueSummary).length > 0 ? (
             <div className="flex items-start gap-4">
@@ -428,9 +429,8 @@ export default function Dashboard() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground py-12 text-center">Queue is clear</p>
-          )}
-        </div>
-      </div>
+            )}
+            </div>
 
       <RealTimeVitals />
 
