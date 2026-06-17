@@ -56,9 +56,13 @@
       "type": "string",
       "format": "date-time"
     },
+    "assigned_to_id": {
+      "type": "string",
+      "description": "ID of the assigned nurse (use ID instead of name)"
+    },
     "assigned_to_name": {
       "type": "string",
-      "description": "Name of the assigned nurse"
+      "description": "Name of the assigned nurse (display only)"
     },
     "notes": {
       "type": "string"
@@ -87,7 +91,7 @@
           "data.patient_id": "{{user.id}}"
         },
         {
-          "data.assigned_to_name": "{{user.full_name}}"
+          "data.assigned_to_id": "{{user.id}}"
         },
         {
           "created_by_id": "{{user.id}}"
@@ -102,7 +106,7 @@
     "update": {
       "$or": [
         {
-          "data.assigned_to_name": "{{user.full_name}}"
+          "data.assigned_to_id": "{{user.id}}"
         },
         {
           "created_by_id": "{{user.id}}"
