@@ -164,8 +164,8 @@ export default function Layout() {
                   // Navigate to first item in group
                   if (visibleItems.length > 0) {
                     navigate(visibleItems[0].path);
+                    setMobileOpen(false);
                   }
-                  setMobileOpen(false);
                   toggleGroupCollapse(group.label);
                 }}
                 className={`flex items-center justify-between w-full px-2 py-1.5 rounded transition-colors ${!collapsed ? "hover:bg-sidebar-accent/30" : ""}`}
@@ -198,7 +198,10 @@ export default function Layout() {
                     <Link
                       key={item.path}
                       to={item.path}
-                      onClick={() => setMobileOpen(false)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMobileOpen(false);
+                      }}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150 border-l-[3px] ${
                         isActive
                           ? "bg-sidebar-accent/50 text-sidebar-foreground hover:bg-sidebar-accent/50 border-l-sidebar-primary"
