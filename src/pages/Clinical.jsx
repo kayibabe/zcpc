@@ -225,6 +225,26 @@ export default function Clinical() {
     const actDrugs = ["artemether", "lumefantrine", "artesunate", "coartem", "al", "quinine", "artemether-lumefantrine"];
     const isPrescribingAct = prescribedDrugs.some(d => actDrugs.some(act => d.includes(act)));
 
+    // ── Drug Safety Check ──
+    try {
+      const { data: safety } = await base44.functions.invoke("checkDrugSafety", {
+        patient_id: selectedVisit.patient_id,
+        drugs: prescForm.items.map(i => ({ drug_name: i.drug_name, generic_name: i.drug_name, category: "" })),
+      });
+      if (!safety.safe) {
+        const criticalWarnings = safety.warnings.filter(w => w.severity === "contraindicated");
+        if (criticalWarnings.length > 0) {
+          alert(`⚠️ DRUG SAFETY ALERT — CONTRAINDICATED COMBINATIONS\n\n${criticalWarnings.map(w => w.message).join("\n\n")}\n\nThese combinations are contraindicated. Please review and adjust.`);
+          return;
+        }
+        const majorWarnings = safety.warnings.filter(w => w.severity === "major");
+        if (majorWarnings.length > 0) {
+          const proceed = confirm(`⚠️ DRUG SAFETY — MAJOR INTERACTIONS\n\n${majorWarnings.map(w => w.message).join("\n\n")}\n\nPrescribe anyway with caution?`);
+          if (!proceed) return;
+        }
+      }
+    } catch (_) { /* proceed if safety check fails */ }
+
     if (isPrescribingAct) {
       const [diags, labs] = await Promise.all([
         base44.entities.Diagnosis.filter({ visit_id: selectedVisit.id }, "-created_date", 20),

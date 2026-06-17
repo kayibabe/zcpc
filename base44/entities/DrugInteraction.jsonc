@@ -1,0 +1,42 @@
+{
+  "name": "DrugInteraction",
+  "type": "object",
+  "properties": {
+    "drug_a": {
+      "type": "string",
+      "description": "First drug name or generic name"
+    },
+    "drug_b": {
+      "type": "string",
+      "description": "Second drug name or generic name"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "contraindicated",
+        "major",
+        "moderate",
+        "minor"
+      ],
+      "default": "moderate"
+    },
+    "description": {
+      "type": "string",
+      "description": "Clinical description of the interaction"
+    },
+    "recommendation": {
+      "type": "string",
+      "description": "Clinical recommendation"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "drug_a",
+    "drug_b",
+    "severity",
+    "description"
+  ]
+}

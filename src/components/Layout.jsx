@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import LivePulse from "@/components/LivePulse";
@@ -11,36 +11,36 @@ import {
   ArrowRightLeft, ShieldCheck
 } from "lucide-react";
 
-const navGroups = [
+const ALL_NAV_GROUPS = [
   {
     label: "Clinical",
     items: [
-      { label: "Dashboard", path: "/", icon: LayoutDashboard },
-      { label: "Reception", path: "/reception", icon: Users },
-      { label: "Appointments", path: "/appointments", icon: CalendarDays },
-      { label: "Clinical", path: "/clinical", icon: Stethoscope },
-      { label: "Nursing", path: "/nursing", icon: ClipboardPen },
-      { label: "Laboratory", path: "/lab", icon: FlaskConical },
-      { label: "Imaging", path: "/imaging", icon: Scan },
-      { label: "Pharmacy", path: "/pharmacy", icon: Pill },
-      { label: "Inpatient", path: "/inpatient", icon: BedDouble },
-      { label: "Maternal", path: "/maternal", icon: Baby },
-      { label: "Billing", path: "/billing", icon: Receipt },
+      { label: "Dashboard", path: "/", icon: LayoutDashboard, roles: ["admin", "user"] },
+      { label: "Reception", path: "/reception", icon: Users, roles: ["admin", "user"] },
+      { label: "Appointments", path: "/appointments", icon: CalendarDays, roles: ["admin", "user"] },
+      { label: "Clinical", path: "/clinical", icon: Stethoscope, roles: ["admin", "user"] },
+      { label: "Nursing", path: "/nursing", icon: ClipboardPen, roles: ["admin", "user"] },
+      { label: "Laboratory", path: "/lab", icon: FlaskConical, roles: ["admin", "user"] },
+      { label: "Imaging", path: "/imaging", icon: Scan, roles: ["admin", "user"] },
+      { label: "Pharmacy", path: "/pharmacy", icon: Pill, roles: ["admin", "user"] },
+      { label: "Inpatient", path: "/inpatient", icon: BedDouble, roles: ["admin", "user"] },
+      { label: "Maternal", path: "/maternal", icon: Baby, roles: ["admin", "user"] },
+      { label: "Billing", path: "/billing", icon: Receipt, roles: ["admin", "user"] },
     ],
   },
   {
     label: "Operations",
     items: [
-      { label: "Calendar", path: "/calendar", icon: CalendarDays },
-      { label: "Queue Display", path: "/queue", icon: Monitor },
-      { label: "MoH Reports", path: "/moh-reports", icon: FileBarChart },
-      { label: "Physician Perf.", path: "/physician-performance", icon: Stethoscope },
-      { label: "Waste Management", path: "/waste", icon: Trash2 },
-      { label: "Doctor Handover", path: "/doctor-handover", icon: ArrowRightLeft },
-      { label: "My Signatures", path: "/my-signatures", icon: PenTool },
-      { label: "Signature Audit", path: "/signature-audit", icon: ShieldCheck },
-      { label: "Patient Portal", path: "/portal", icon: UserCircle },
-      { label: "Admin", path: "/admin", icon: Shield },
+      { label: "Calendar", path: "/calendar", icon: CalendarDays, roles: ["admin", "user"] },
+      { label: "Queue Display", path: "/queue", icon: Monitor, roles: ["admin", "user"] },
+      { label: "MoH Reports", path: "/moh-reports", icon: FileBarChart, roles: ["admin"] },
+      { label: "Physician Perf.", path: "/physician-performance", icon: Stethoscope, roles: ["admin"] },
+      { label: "Waste Management", path: "/waste", icon: Trash2, roles: ["admin", "user"] },
+      { label: "Doctor Handover", path: "/doctor-handover", icon: ArrowRightLeft, roles: ["admin", "user"] },
+      { label: "My Signatures", path: "/my-signatures", icon: PenTool, roles: ["admin", "user"] },
+      { label: "Signature Audit", path: "/signature-audit", icon: ShieldCheck, roles: ["admin"] },
+      { label: "Patient Portal", path: "/portal", icon: UserCircle, roles: ["admin", "user"] },
+      { label: "Admin", path: "/admin", icon: Shield, roles: ["admin"] },
     ],
   },
 ];
@@ -48,7 +48,14 @@ const navGroups = [
 export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [userRole, setUserRole] = useState("user");
   const location = useLocation();
+
+  useEffect(() => {
+    base44.auth.me().then(u => {
+      if (u?.role) setUserRole(u.role);
+    }).catch(() => {});
+  }, []);
 
   const handleLogout = () => {
     base44.auth.logout("/login");
@@ -69,7 +76,10 @@ export default function Layout() {
         )}
       </div>
       <nav className="flex-1 py-2 px-2 space-y-4 overflow-y-auto">
-        {navGroups.map((group) => (
+        {ALL_NAV_GROUPS.map((group) => {
+          const visibleItems = group.items.filter(item => item.roles.includes(userRole));
+          if (visibleItems.length === 0) return null;
+          return (
           <div key={group.label}>
             {!collapsed && (
               <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
@@ -77,7 +87,7 @@ export default function Layout() {
               </p>
             )}
             <div className="space-y-0.5">
-              {group.items.map((item) => {
+              {visibleItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
                 return (
@@ -98,7 +108,8 @@ export default function Layout() {
               })}
             </div>
           </div>
-        ))}
+          );
+        })}
       </nav>
       <div className="border-t border-sidebar-border p-3">
         <button

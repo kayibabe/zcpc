@@ -11,6 +11,7 @@ import SignatureStatus from "@/components/SignatureStatus";
 export default function Pharmacy() {
   const [drugs, setDrugs] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
+  const [prescriptionItems, setPrescriptionItems] = useState([]);
   const [dispensings, setDispensings] = useState([]);
   const [pharmacyJourneys, setPharmacyJourneys] = useState([]);
   const [patients, setPatients] = useState([]);
@@ -29,15 +30,17 @@ export default function Pharmacy() {
   useEffect(() => {
     async function load() {
       try {
-        const [d, p, disp, jList, patList] = await Promise.all([
+        const [d, p, pi, disp, jList, patList] = await Promise.all([
           base44.entities.Drug.list("-created_date", 200),
           base44.entities.Prescription.filter({ status: { $in: ["pending", "partial"] } }, "-created_date", 50),
+          base44.entities.PrescriptionItem.filter({ status: { $in: ["pending", "partial"] } }, "-created_date", 100),
           base44.entities.PharmacyDispensing.list("-created_date", 50),
           base44.entities.PatientJourney.filter({ current_stage: { $in: ["PHARMACY_PENDING", "PHARMACY_DISPENSING"] }, status: "active" }, "-created_date", 30),
           base44.entities.Patient.list("-created_date", 100),
         ]);
         setDrugs(d);
         setPrescriptions(p);
+        setPrescriptionItems(pi);
         setDispensings(disp);
         setPharmacyJourneys(jList);
         setPatients(patList);
@@ -59,20 +62,51 @@ export default function Pharmacy() {
     setDrugForm({ name: "", generic_name: "", category: "", strength: "", form: "", manufacturer: "", unit_price: "", cost_price: "", quantity_in_stock: "", reorder_level: "10", batch_number: "", expiry_date: "" });
   };
 
-  const dispenseDrug = async (drugId) => {
-    const drug = drugs.find(d => d.id === drugId);
-    const qty = prompt(`Quantity to dispense (in stock: ${drug.quantity_in_stock}):`);
-    if (!qty || Number(qty) <= 0 || Number(qty) > drug.quantity_in_stock) return;
-    await base44.entities.Drug.update(drugId, { quantity_in_stock: drug.quantity_in_stock - Number(qty) });
+  // ── Proper Dispensing Modal State ──
+  const [dispenseModal, setDispenseModal] = useState(null); // { drug, prescriptionItem }
+  const [dispenseQty, setDispenseQty] = useState("");
+
+  const openDispenseModal = (drug, prescriptionItem = null) => {
+    setDispenseModal({ drug, prescriptionItem });
+    setDispenseQty(prescriptionItem ? String(prescriptionItem.quantity) : "1");
+  };
+
+  const dispenseDrug = async () => {
+    if (!dispenseModal) return;
+    const { drug, prescriptionItem } = dispenseModal;
+    const qty = Number(dispenseQty);
+    if (!qty || qty <= 0 || qty > drug.quantity_in_stock) return;
+
+    await base44.entities.Drug.update(drug.id, { quantity_in_stock: drug.quantity_in_stock - qty });
+
     await base44.entities.PharmacyDispensing.create({
-      prescription_item_id: "", patient_id: "", drug_name: drug.name, quantity_dispensed: Number(qty), dispensing_date: new Date().toISOString(),
+      prescription_item_id: prescriptionItem?.id || "",
+      prescription_id: prescriptionItem?.prescription_id || "",
+      patient_id: prescriptionItem?.patient_id || "",
+      drug_name: drug.name,
+      quantity_dispensed: qty,
+      batch_number: drug.batch_number || "",
+      dispensing_date: new Date().toISOString(),
+      dispensed_by: "pharmacy",
     });
+
+    // Update prescription item status
+    if (prescriptionItem?.id) {
+      const remaining = (prescriptionItem.quantity || 0) - qty;
+      await base44.entities.PrescriptionItem.update(prescriptionItem.id, {
+        status: remaining <= 0 ? "dispensed" : "partial",
+        quantity: remaining < 0 ? 0 : remaining,
+      });
+    }
+
     const [d, disp] = await Promise.all([
       base44.entities.Drug.list("-created_date", 200),
       base44.entities.PharmacyDispensing.list("-created_date", 50),
     ]);
     setDrugs(d);
     setDispensings(disp);
+    setDispenseModal(null);
+    setDispenseQty("");
   };
 
   const disposeAsWaste = async (drug) => {
@@ -282,7 +316,7 @@ export default function Pharmacy() {
                       <td className="py-2.5 px-3">{d.expiry_date || "—"}</td>
                       <td className="py-2.5 px-3">
                         <div className="flex gap-1 flex-wrap">
-                          <button onClick={() => dispenseDrug(d.id)} className="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium hover:bg-primary/20">Dispense</button>
+                          <button onClick={() => openDispenseModal(d)} className="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium hover:bg-primary/20">Dispense</button>
                           {(d.status === "discontinued" || d.status === "recalled" || d.quantity_in_stock <= 0 || (d.expiry_date && new Date(d.expiry_date) < new Date())) && (
                             <button onClick={() => disposeAsWaste(d)} className="px-2 py-1 bg-destructive/10 text-destructive rounded text-xs font-medium hover:bg-destructive/20 flex items-center gap-1">
                               <Trash2 className="w-3 h-3" /> Dispose
@@ -326,15 +360,52 @@ export default function Pharmacy() {
 
           {activeTab === "prescriptions" && (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b border-border"><th className="text-left py-2 px-3 font-medium text-muted-foreground">Date</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Patient ID</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Status</th></tr></thead>
-                <tbody>
-                  {prescriptions.map(p => (
-                    <tr key={p.id} className="border-b border-border/40"><td className="py-2.5 px-3">{new Date(p.created_date).toLocaleDateString("en-GB")}</td><td className="py-2.5 px-3 font-mono text-xs">{p.patient_id?.slice(0, 8)}</td><td className="py-2.5 px-3 capitalize">{p.status}</td></tr>
-                  ))}
-                  {prescriptions.length === 0 && <tr><td colSpan={3} className="py-12 text-center text-sm text-muted-foreground">No pending prescriptions.</td></tr>}
-                </tbody>
-              </table>
+              {prescriptionItems.length === 0 ? (
+                <p className="py-12 text-center text-sm text-muted-foreground">No pending prescription items to dispense.</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-border">
+                    <th className="text-left py-2 px-3 font-medium text-muted-foreground">Patient</th>
+                    <th className="text-left py-2 px-3 font-medium text-muted-foreground">Drug</th>
+                    <th className="text-left py-2 px-3 font-medium text-muted-foreground">Dosage</th>
+                    <th className="text-left py-2 px-3 font-medium text-muted-foreground">Qty</th>
+                    <th className="text-left py-2 px-3 font-medium text-muted-foreground">Status</th>
+                    <th className="text-left py-2 px-3 font-medium text-muted-foreground">Action</th>
+                  </tr></thead>
+                  <tbody>
+                    {prescriptionItems.map(item => {
+                      const presc = prescriptions.find(p => p.id === item.prescription_id);
+                      const drug = drugs.find(d => d.name?.toLowerCase() === item.drug_name?.toLowerCase() || d.generic_name?.toLowerCase() === item.drug_name?.toLowerCase());
+                      return (
+                        <tr key={item.id} className="border-b border-border/40 hover:bg-muted/30">
+                          <td className="py-2.5 px-3 font-medium">{getPatientName(presc?.patient_id)}</td>
+                          <td className="py-2.5 px-3">{item.drug_name}</td>
+                          <td className="py-2.5 px-3 text-xs">{item.dosage} {item.frequency} {item.duration}</td>
+                          <td className="py-2.5 px-3 font-mono text-xs">{item.quantity}</td>
+                          <td className="py-2.5 px-3">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              item.status === "dispensed" ? "bg-chart-3/10 text-chart-3" : "bg-chart-4/10 text-chart-4"
+                            }`}>{item.status}</span>
+                          </td>
+                          <td className="py-2.5 px-3">
+                            {item.status !== "dispensed" && drug && (
+                              <button
+                                onClick={() => openDispenseModal(drug, { ...item, patient_id: presc?.patient_id })}
+                                className="px-2 py-1 bg-chart-2/10 text-chart-2 rounded text-xs font-medium hover:bg-chart-2/20"
+                              >
+                                Dispense
+                              </button>
+                            )}
+                            {!drug && item.status !== "dispensed" && (
+                              <span className="text-xs text-destructive">Not in stock</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
 
@@ -432,6 +503,53 @@ export default function Pharmacy() {
           )}
         </div>
       </div>
+
+      {/* Dispensing Modal */}
+      {dispenseModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setDispenseModal(null)} />
+          <div className="relative z-10 w-full max-w-sm mx-4 bg-card rounded-xl border border-border/60 p-6 shadow-2xl">
+            <h3 className="font-heading text-lg font-semibold mb-4">Dispense Drug</h3>
+            <div className="space-y-3">
+              <div className="p-3 bg-muted/20 rounded-lg">
+                <p className="text-sm font-semibold">{dispenseModal.drug.name}</p>
+                <p className="text-xs text-muted-foreground">{dispenseModal.drug.generic_name} · {dispenseModal.drug.strength}</p>
+                <p className="text-xs mt-1">In stock: <span className="font-semibold">{dispenseModal.drug.quantity_in_stock}</span></p>
+              </div>
+              {dispenseModal.prescriptionItem && (
+                <div className="p-3 bg-primary/5 border border-primary/10 rounded-lg text-xs">
+                  <p><strong>Prescribed:</strong> {dispenseModal.prescriptionItem.dosage} {dispenseModal.prescriptionItem.frequency} × {dispenseModal.prescriptionItem.duration}</p>
+                  <p><strong>Ordered qty:</strong> {dispenseModal.prescriptionItem.quantity}</p>
+                  <p><strong>Patient:</strong> {getPatientName(dispenseModal.prescriptionItem.patient_id)}</p>
+                </div>
+              )}
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">Quantity to Dispense</label>
+                <input
+                  type="number"
+                  min="1"
+                  max={dispenseModal.drug.quantity_in_stock}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  value={dispenseQty}
+                  onChange={e => setDispenseQty(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button
+                onClick={dispenseDrug}
+                disabled={!dispenseQty || Number(dispenseQty) <= 0 || Number(dispenseQty) > dispenseModal.drug.quantity_in_stock}
+                className="flex-1 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+              >
+                Confirm Dispense
+              </button>
+              <button onClick={() => setDispenseModal(null)} className="px-4 py-2.5 border border-border rounded-lg text-sm hover:bg-muted">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Signature Pad Modal */}
       {signingDoc && (
