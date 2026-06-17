@@ -368,6 +368,91 @@ export default function Dashboard() {
               </table>
             </div>
           )}
+
+          {/* Active Patient Journeys */}
+          <div className="bg-card rounded-xl border border-border/60 p-5 shadow-sm mt-5">
+            <h3 className="font-heading text-lg font-semibold mb-3 flex items-center gap-2">
+              <GitBranch className="w-5 h-5 text-primary" /> Active Journeys ({activeJourneys.length})
+            </h3>
+            {activeJourneys.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-2">No active patient journeys.</p>
+            ) : (
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {activeJourneys.slice(0, 5).map(j => {
+                  let slaBreached = false;
+                  try {
+                    const history = j.stage_history ? JSON.parse(j.stage_history) : [];
+                    const lastEntry = history[history.length - 1];
+                    if (lastEntry && lastEntry.to === j.current_stage) {
+                      const stageStart = new Date(lastEntry.timestamp);
+                      const mins = (Date.now() - stageStart.getTime()) / 60000;
+                      const SLAS = {RECEPTION:15,TRIAGE:20,CONSULTATION:45,LAB_PENDING:30,LAB_PROCESSING:60,IMAGING_PENDING:30,IMAGING_PROCESSING:60,PHARMACY_PENDING:30,PHARMACY_DISPENSING:45,NURSING_ADMINISTRATION:60,BILLING:30};
+                      slaBreached = SLAS[j.current_stage] ? mins > SLAS[j.current_stage] : false;
+                    }
+                  } catch(_){}
+                  return (
+                    <div key={j.id} className={`flex items-center justify-between p-2.5 border rounded-lg ${slaBreached ? "border-destructive/30 bg-destructive/5" : "border-border/40 bg-muted/10"}`}>
+                      <div className="min-w-0 flex-1">
+                        <PatientJourneyTimeline journeyId={j.id} compact />
+                      </div>
+                    </div>
+                  );
+                })}
+                {activeJourneys.length > 5 && (
+                  <p className="text-xs text-muted-foreground text-center">+{activeJourneys.length - 5} more active</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Quick Actions + Patient Reminders — side by side */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">
+            <div className="bg-card rounded-xl border border-border/60 p-5 shadow-sm">
+              <h3 className="font-heading text-lg font-semibold mb-3 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-primary" /> Quick Actions
+              </h3>
+              <div className="space-y-2">
+                {[
+                  { label: "Register New Patient", path: "/reception" },
+                  { label: "Schedule Appointment", path: "/appointments" },
+                  { label: "Start Consultation", path: "/clinical" },
+                  { label: "View Lab Orders", path: "/lab" },
+                  { label: "Pharmacy Inventory", path: "/pharmacy" },
+                  { label: "Process Payment", path: "/billing" },
+                ].map(action => (
+                  <a key={action.label} href={action.path} className="block px-3 py-2 rounded-lg border border-border hover:bg-muted hover:border-primary/30 transition-all text-sm font-medium">
+                    {action.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-card rounded-xl border border-border/60 p-5 shadow-sm">
+              <h3 className="font-heading text-lg font-semibold mb-3 flex items-center gap-2">
+                <Bell className="w-5 h-5 text-chart-2" /> Patient Reminders
+              </h3>
+              <p className="text-xs text-muted-foreground mb-3">
+                Send appointment reminders for tomorrow's scheduled patients. Runs daily at 6am.
+              </p>
+              <button
+                onClick={sendReminders}
+                disabled={reminderSending}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-chart-2 text-white rounded-lg text-sm font-medium hover:bg-chart-2/90 disabled:opacity-50 shadow-sm"
+              >
+                {reminderSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {reminderSending ? "Sending..." : "Send Reminders Now"}
+              </button>
+              {reminderResult && !reminderResult.error && (
+                <div className="mt-3 p-3 bg-chart-2/5 rounded-lg text-xs">
+                  <p className="font-medium">Sent: {reminderResult.reminders_sent} of {reminderResult.total_appointments}</p>
+                  <p className="text-muted-foreground mt-1">For {reminderResult.date} appointments</p>
+                </div>
+              )}
+              {reminderResult?.error && (
+                <div className="mt-3 p-3 bg-destructive/5 rounded-lg text-xs text-destructive">{reminderResult.error}</div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -394,44 +479,6 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-
-          {/* Active Patient Journeys */}
-          <div className="bg-card rounded-xl border border-border/60 p-5 shadow-sm">
-            <h3 className="font-heading text-lg font-semibold mb-3 flex items-center gap-2">
-              <GitBranch className="w-5 h-5 text-primary" /> Active Journeys ({activeJourneys.length})
-            </h3>
-            {activeJourneys.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-2">No active patient journeys.</p>
-            ) : (
-              <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                {activeJourneys.slice(0, 5).map(j => {
-                  // Calculate SLA status
-                  let slaBreached = false;
-                  let minutesInStage = 0;
-                  try {
-                    const history = j.stage_history ? JSON.parse(j.stage_history) : [];
-                    const lastEntry = history[history.length - 1];
-                    if (lastEntry && lastEntry.to === j.current_stage) {
-                      const stageStart = new Date(lastEntry.timestamp);
-                      minutesInStage = (Date.now() - stageStart.getTime()) / 60000;
-                      const SLAS = {RECEPTION:15,TRIAGE:20,CONSULTATION:45,LAB_PENDING:30,LAB_PROCESSING:60,IMAGING_PENDING:30,IMAGING_PROCESSING:60,PHARMACY_PENDING:30,PHARMACY_DISPENSING:45,NURSING_ADMINISTRATION:60,BILLING:30};
-                      slaBreached = SLAS[j.current_stage] ? minutesInStage > SLAS[j.current_stage] : false;
-                    }
-                  } catch(_){}
-                  return (
-                    <div key={j.id} className={`flex items-center justify-between p-2.5 border rounded-lg ${slaBreached ? "border-destructive/30 bg-destructive/5" : "border-border/40 bg-muted/10"}`}>
-                      <div className="min-w-0 flex-1">
-                        <PatientJourneyTimeline journeyId={j.id} compact />
-                      </div>
-                    </div>
-                  );
-                })}
-                {activeJourneys.length > 5 && (
-                  <p className="text-xs text-muted-foreground text-center">+{activeJourneys.length - 5} more active</p>
-                )}
-              </div>
-            )}
-          </div>
 
           {/* SLA Breach Alerts */}
           {(() => {
@@ -465,52 +512,6 @@ export default function Dashboard() {
               </div>
             );
           })()}
-
-          <div className="bg-card rounded-xl border border-border/60 p-5 shadow-sm">
-            <h3 className="font-heading text-lg font-semibold mb-4 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" /> Quick Actions
-            </h3>
-            <div className="space-y-2">
-              {[
-                { label: "Register New Patient", path: "/reception" },
-                { label: "Schedule Appointment", path: "/appointments" },
-                { label: "Start Consultation", path: "/clinical" },
-                { label: "View Lab Orders", path: "/lab" },
-                { label: "Pharmacy Inventory", path: "/pharmacy" },
-                { label: "Process Payment", path: "/billing" },
-              ].map((action) => (
-                <a key={action.label} href={action.path} className="block px-4 py-3 rounded-lg border border-border hover:bg-muted hover:border-primary/30 transition-all text-sm font-medium">
-                  {action.label}
-                </a>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-card rounded-xl border border-border/60 p-5 shadow-sm">
-            <h3 className="font-heading text-lg font-semibold mb-4 flex items-center gap-2">
-              <Bell className="w-5 h-5 text-chart-2" /> Patient Reminders
-            </h3>
-            <p className="text-xs text-muted-foreground mb-3">
-              Send appointment reminders for tomorrow's scheduled patients via email. Automatically runs daily at 6am.
-            </p>
-            <button
-              onClick={sendReminders}
-              disabled={reminderSending}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-chart-2 text-white rounded-lg text-sm font-medium hover:bg-chart-2/90 disabled:opacity-50 shadow-sm"
-            >
-              {reminderSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              {reminderSending ? "Sending..." : "Send Reminders Now"}
-            </button>
-            {reminderResult && !reminderResult.error && (
-              <div className="mt-3 p-3 bg-chart-2/5 rounded-lg text-xs">
-                <p className="font-medium">Sent: {reminderResult.reminders_sent} of {reminderResult.total_appointments}</p>
-                <p className="text-muted-foreground mt-1">For {reminderResult.date} appointments</p>
-              </div>
-            )}
-            {reminderResult?.error && (
-              <div className="mt-3 p-3 bg-destructive/5 rounded-lg text-xs text-destructive">{reminderResult.error}</div>
-            )}
-          </div>
 
           {dailyReport?.visit_breakdown && Object.keys(dailyReport.visit_breakdown).length > 0 && (
             <div className="bg-card rounded-xl border border-border/60 p-5 shadow-sm">
