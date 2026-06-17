@@ -26,6 +26,7 @@ const ALL_NAV_GROUPS = [
       { label: "Inpatient", path: "/inpatient", icon: BedDouble, roles: ["admin", "user"] },
       { label: "Maternal", path: "/maternal", icon: Baby, roles: ["admin", "user"] },
       { label: "Billing", path: "/billing", icon: Receipt, roles: ["admin", "user"] },
+      { label: "Insurance", path: "/insurance-claims", icon: FileBarChart, roles: ["admin", "user"] },
     ],
   },
   {

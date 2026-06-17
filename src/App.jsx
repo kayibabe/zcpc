@@ -33,6 +33,7 @@ import SurgeryCalendar from '@/pages/SurgeryCalendar';
 import JourneyMap from '@/pages/JourneyMap';
 import DoctorScheduling from '@/pages/DoctorSchedule';
 import StaffShiftDashboard from '@/pages/StaffShiftDashboard';
+import InsuranceClaimPortal from '@/pages/InsuranceClaimPortal';
 import Layout from '@/components/Layout';
 
 const AuthenticatedApp = () => {
@@ -88,6 +89,7 @@ const AuthenticatedApp = () => {
         <Route path="/journey-map" element={<JourneyMap />} />
         <Route path="/doctor-schedule" element={<DoctorScheduling />} />
         <Route path="/staff-shifts" element={<StaffShiftDashboard />} />
+        <Route path="/insurance-claims" element={<InsuranceClaimPortal />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
