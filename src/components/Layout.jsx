@@ -114,7 +114,7 @@ export default function Layout() {
                     onClick={() => setMobileOpen(false)}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150 border-l-[3px] ${
                       isActive
-                        ? "bg-sidebar-accent text-sidebar-foreground border-l-sidebar-primary"
+                        ? "bg-sidebar-accent/50 text-sidebar-foreground hover:bg-sidebar-accent/50 border-l-sidebar-primary"
                         : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground border-l-transparent"
                     }`}
                   >
