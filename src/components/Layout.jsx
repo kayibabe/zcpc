@@ -201,6 +201,9 @@ export default function Layout() {
                       onClick={(e) => {
                         e.stopPropagation();
                         setMobileOpen(false);
+                        if (item.path === "/") {
+                          setCollapsedGroups({});
+                        }
                       }}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150 border-l-[3px] ${
                         isActive
