@@ -11,6 +11,7 @@ import PharmacistDashboard from "@/components/PharmacistDashboard";
 import CashierDashboard from "@/components/CashierDashboard";
 import ReceptionistDashboard from "@/components/ReceptionistDashboard";
 import RadiographerDashboard from "@/components/RadiographerDashboard";
+import SurgicalLeadDashboard from "@/components/SurgicalLeadDashboard";
 import RoleBasedReportDownload from "@/components/RoleBasedReportDownload";
 import RealTimeVitals from "@/components/RealTimeVitals";
 import TriageWidget from "@/components/TriageWidget";
@@ -392,6 +393,7 @@ export default function Dashboard() {
       {isCashier && <CashierDashboard />}
       {isReceptionist && <ReceptionistDashboard />}
       {isRadiographer && <RadiographerDashboard />}
+      {isSurgicalLead && <SurgicalLeadDashboard />}
 
       {/* Role-Based Report Downloads */}
       {(isAdmin || isDoctor || isNurse || isPharmacist || isCashier || isReceptionist) && (
