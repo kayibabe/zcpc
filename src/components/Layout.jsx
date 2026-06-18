@@ -132,8 +132,9 @@ export default function Layout() {
     }).catch(() => {});
   }, []);
 
-  const handleLogout = () => {
-    base44.auth.logout();
+  const handleLogout = async () => {
+    await base44.auth.logout();
+    window.location.reload();
   };
 
   const sidebarContent =
