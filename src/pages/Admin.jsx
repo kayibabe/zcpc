@@ -16,6 +16,23 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState("users");
   const [showInvite, setShowInvite] = useState(false);
   const [inviteForm, setInviteForm] = useState({ email: "", role: "user" });
+  const [updatingRole, setUpdatingRole] = useState(null);
+
+  const STAFF_ROLES = [
+    { value: "user", label: "User (Default)" },
+    { value: "admin", label: "Admin" },
+    { value: "doctor", label: "Doctor" },
+    { value: "clinician", label: "Clinician" },
+    { value: "nurse", label: "Nurse" },
+    { value: "midwife", label: "Midwife" },
+    { value: "pharmacist", label: "Pharmacist" },
+    { value: "lab_technician", label: "Lab Technician" },
+    { value: "radiographer", label: "Radiographer" },
+    { value: "cashier", label: "Cashier" },
+    { value: "receptionist", label: "Receptionist" },
+    { value: "surgical_lead", label: "Surgical Lead" },
+    { value: "store_manager", label: "Store Manager" },
+  ];
   const [showSchemeForm, setShowSchemeForm] = useState(false);
   const [schemeForm, setSchemeForm] = useState({ name: "", code: "", contact_phone: "", contact_email: "", coverage_details: "" });
   const [exporting, setExporting] = useState(false);
@@ -42,12 +59,26 @@ export default function Admin() {
   const inviteUser = async (e) => {
     e.preventDefault();
     try {
-      await base44.users.inviteUser(inviteForm.email, inviteForm.role);
+      // Platform only accepts "user" or "admin" at invite time; role is updated after registration
+      const inviteRole = ["admin"].includes(inviteForm.role) ? "admin" : "user";
+      await base44.users.inviteUser(inviteForm.email, inviteRole);
       setInviteForm({ email: "", role: "user" });
       setShowInvite(false);
-      alert("Invitation sent to " + inviteForm.email);
+      alert(`Invitation sent to ${inviteForm.email}. After they register, update their role to "${inviteForm.role}" in the users table.`);
     } catch (err) {
       alert("Error: " + err.message);
+    }
+  };
+
+  const updateUserRole = async (userId, newRole) => {
+    setUpdatingRole(userId);
+    try {
+      await base44.entities.User.update(userId, { role: newRole });
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+    } catch (err) {
+      alert("Error updating role: " + err.message);
+    } finally {
+      setUpdatingRole(null);
     }
   };
 
@@ -122,13 +153,32 @@ export default function Admin() {
               {showInvite && (
                 <form onSubmit={inviteUser} className="mb-4 p-4 bg-muted/30 rounded-xl flex flex-col sm:flex-row gap-3">
                   <div className="flex-1"><label className="block text-xs text-muted-foreground mb-1">Email *</label><input type="email" required className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" value={inviteForm.email} onChange={e => setInviteForm({...inviteForm, email: e.target.value})} placeholder="user@example.com" /></div>
-                  <div><label className="block text-xs text-muted-foreground mb-1">Role</label><select className="rounded-lg border border-border bg-background px-3 py-2 text-sm" value={inviteForm.role} onChange={e => setInviteForm({...inviteForm, role: e.target.value})}><option value="user">User</option><option value="admin">Admin</option></select></div>
+                  <div><label className="block text-xs text-muted-foreground mb-1">Role</label><select className="rounded-lg border border-border bg-background px-3 py-2 text-sm" value={inviteForm.role} onChange={e => setInviteForm({...inviteForm, role: e.target.value})}>{STAFF_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}</select></div>
                   <div className="flex items-end gap-2"><button type="submit" className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium">Send Invite</button><button type="button" onClick={() => setShowInvite(false)} className="px-4 py-2 border border-border rounded-lg text-sm">Cancel</button></div>
                 </form>
               )}
 
               <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-border"><th className="text-left py-2 px-3 font-medium text-muted-foreground">Name</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Email</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Role</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Joined</th></tr></thead><tbody>
-                {users.map(u => (<tr key={u.id} className="border-b border-border/40"><td className="py-2.5 px-3 font-medium">{u.full_name || "—"}</td><td className="py-2.5 px-3">{u.email}</td><td className="py-2.5 px-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.role === "admin" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{u.role}</span></td><td className="py-2.5 px-3">{new Date(u.created_date).toLocaleDateString("en-GB")}</td></tr>))}
+                {users.map(u => (
+                  <tr key={u.id} className="border-b border-border/40">
+                    <td className="py-2.5 px-3 font-medium">{u.full_name || "—"}</td>
+                    <td className="py-2.5 px-3 text-muted-foreground">{u.email}</td>
+                    <td className="py-2.5 px-3">
+                      <div className="flex items-center gap-2">
+                        <select
+                          className="rounded-lg border border-border bg-background px-2 py-1 text-xs font-medium"
+                          value={u.role || "user"}
+                          onChange={e => updateUserRole(u.id, e.target.value)}
+                          disabled={updatingRole === u.id}
+                        >
+                          {STAFF_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                        </select>
+                        {updatingRole === u.id && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+                      </div>
+                    </td>
+                    <td className="py-2.5 px-3 text-muted-foreground">{new Date(u.created_date).toLocaleDateString("en-GB")}</td>
+                  </tr>
+                ))}
               </tbody></table></div>
             </div>
           )}
