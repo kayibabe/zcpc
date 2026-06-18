@@ -1,5 +1,58 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import * as speakeasy from 'npm:speakeasy@2.0.0';
+
+// Base32 decoder
+function base32Decode(encoded) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const bytes = [];
+  let bits = 0;
+  let value = 0;
+
+  for (const char of encoded.toUpperCase()) {
+    const idx = alphabet.indexOf(char);
+    if (idx === -1) throw new Error('Invalid base32 character');
+    value = (value << 5) | idx;
+    bits += 5;
+    if (bits >= 8) {
+      bits -= 8;
+      bytes.push((value >> bits) & 0xff);
+    }
+  }
+  return new Uint8Array(bytes);
+}
+
+// TOTP RFC 6238 - verify a token with ±1 time window
+async function verifyTOTP(secret, token) {
+  const key = base32Decode(secret);
+  const code = parseInt(token, 10);
+
+  if (isNaN(code) || code < 0 || code > 999999 || token.length !== 6) {
+    return false;
+  }
+
+  const now = Math.floor(Date.now() / 30000);
+
+  for (let t = now - 1; t <= now + 1; t++) {
+    const counter = new ArrayBuffer(8);
+    const view = new DataView(counter);
+    view.setBigInt64(0, BigInt(t), false);
+
+    const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+    const hmac = new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, counter));
+
+    const offset = hmac[19] & 0x0f;
+    const truncated = (
+      ((hmac[offset] & 0x7f) << 24) |
+      ((hmac[offset + 1] & 0xff) << 16) |
+      ((hmac[offset + 2] & 0xff) << 8) |
+      (hmac[offset + 3] & 0xff)
+    ) >>> 0;
+
+    if ((truncated % 1000000) === code) {
+      return true;
+    }
+  }
+  return false;
+}
 
 Deno.serve(async (req) => {
   try {
@@ -24,12 +77,7 @@ Deno.serve(async (req) => {
 
     // Verify TOTP token if provided
     if (token && token.length === 6) {
-      verified = speakeasy.totp.verify({
-        secret: userSecurity.totp_secret,
-        encoding: 'base32',
-        token: token,
-        window: 2,
-      });
+      verified = await verifyTOTP(userSecurity.totp_secret, token);
     }
 
     // Verify backup code if TOTP failed and backup code provided
