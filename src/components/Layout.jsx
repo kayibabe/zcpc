@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import LivePulse from "@/components/LivePulse";
+import QuickActionMenu from "@/components/QuickActionMenu";
+import SurgeAlertBanner from "@/components/SurgeAlertBanner";
 
 import {
   LayoutDashboard, Users, CalendarDays, Stethoscope, FlaskConical,
@@ -9,7 +11,7 @@ import {
   ChevronLeft, ChevronRight, LogOut, Menu, X, Activity,
   Bell, Search, ClipboardPen, Monitor, FileBarChart, Trash2, PenTool,
   ArrowRightLeft, ShieldCheck, ClipboardCheck, Scissors, GitBranch, Clock, Zap,
-  TrendingUp, Package, MessageSquare, FileText, CheckCircle, ChevronDown } from
+  TrendingUp, Package, MessageSquare, FileText, CheckCircle, ChevronDown, Siren } from
 "lucide-react";
 
 const ALL_NAV_GROUPS = [
@@ -25,7 +27,8 @@ const ALL_NAV_GROUPS = [
   { label: "Reception", path: "/reception", icon: Users, roles: ["admin", "user", "receptionist"] },
   { label: "Patient Intake", path: "/patient-intake", icon: Users, roles: ["admin", "user", "receptionist"] },
   { label: "Appointments", path: "/appointments", icon: CalendarDays, roles: ["admin", "user", "receptionist"] },
-  { label: "Triage", path: "/triage", icon: ClipboardCheck, roles: ["admin", "user", "receptionist"] }]
+  { label: "Triage", path: "/triage", icon: ClipboardCheck, roles: ["admin", "user", "receptionist"] },
+  { label: "Surge Monitor", path: "/surge", icon: Siren, roles: ["admin", "user", "doctor", "nurse", "receptionist"] }]
 
 },
 {
@@ -303,6 +306,7 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-2 lg:gap-4">
+            <QuickActionMenu userRole={userRole} />
             <div className="hidden sm:flex items-center gap-2">
               <LivePulse compact />
             </div>
@@ -356,6 +360,7 @@ export default function Layout() {
 
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto bg-background">
+          <SurgeAlertBanner />
           <Outlet />
         </main>
       </div>

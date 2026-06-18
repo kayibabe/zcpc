@@ -47,6 +47,7 @@ import DischargeChecklistFlow from '@/pages/DischargeChecklistFlow';
 import PatientIntake from '@/pages/PatientIntake';
 import TreatmentAdherence from '@/pages/TreatmentAdherence';
 import PatientHistory from '@/pages/PatientHistory';
+import Surge from '@/pages/Surge';
 import PatientOutcomeTracker from '@/pages/PatientOutcomeTracker';
 import TotpSetup from '@/pages/TotpSetup';
 import TotpManagement from '@/pages/TotpManagement';
@@ -133,6 +134,7 @@ const AuthenticatedApp = () => {
         <Route path="/patient-outcomes" element={<PatientOutcomeTracker />} />
         <Route path="/audit-logs" element={<ClinicalAuditLog />} />
         <Route path="/patient-history" element={<PatientHistory />} />
+        <Route path="/surge" element={<Surge />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
