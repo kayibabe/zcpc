@@ -23,17 +23,25 @@
     "total_cost": {
       "type": "number"
     },
+    "requisition_date": {
+      "type": "string",
+      "format": "date-time"
+    },
     "status": {
       "type": "string",
       "enum": [
         "draft",
+        "submitted",
         "approved",
         "rejected",
         "ordered"
       ],
       "default": "draft"
     },
-    "approved_by": {
+    "submitted_by_id": {
+      "type": "string"
+    },
+    "approved_by_id": {
       "type": "string"
     },
     "approved_date": {

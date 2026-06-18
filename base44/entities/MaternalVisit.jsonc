@@ -8,6 +8,10 @@
     "visit_id": {
       "type": "string"
     },
+    "admission_id": {
+      "type": "string",
+      "description": "Reference to Admission if mother is admitted for labor"
+    },
     "visit_date": {
       "type": "string",
       "format": "date-time"

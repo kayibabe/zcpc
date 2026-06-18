@@ -21,7 +21,12 @@
       "description": "Optional \u2014 linked patient if applicable"
     },
     "visit_id": {
-      "type": "string"
+      "type": "string",
+      "description": "Reference to Visit where incident occurred"
+    },
+    "admission_id": {
+      "type": "string",
+      "description": "Reference to Admission if inpatient incident"
     },
     "incident_date": {
       "type": "string",

@@ -5,6 +5,10 @@
     "patient_id": {
       "type": "string"
     },
+    "visit_id": {
+      "type": "string",
+      "description": "Reference to Visit during which vaccine was administered"
+    },
     "vaccine_name": {
       "type": "string"
     },
