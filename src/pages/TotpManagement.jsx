@@ -45,6 +45,7 @@ export default function TotpManagement() {
       // Verify TOTP code to allow disabling
       const response = await base44.functions.invoke('verifyTotp', {
         token: confirmTotpCode,
+        secret: userSecurity.totp_secret,
       });
 
       if (!response.data.verified) {
