@@ -244,10 +244,12 @@ export default function Layout() {
     </div>;
 
 
+  const hideSidebar = userRole === "store_manager";
+
   return (
     <div className="flex h-screen bg-background">
       {/* Desktop Sidebar */}
-      <aside
+      {!hideSidebar && <aside
         className={`hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border transition-all duration-300 relative ${
         collapsed ? "w-[72px]" : "w-[260px]"}`
         }>
@@ -259,11 +261,11 @@ export default function Layout() {
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
           
           {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
-        </button>
-      </aside>
+          </button>
+          </aside>}
 
-      {/* Mobile Sidebar */}
-      {mobileOpen &&
+          {/* Mobile Sidebar */}
+          {!hideSidebar && mobileOpen &&
       <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
           <aside className="absolute left-0 top-0 bottom-0 w-[280px] bg-sidebar border-r border-sidebar-border shadow-2xl animate-in slide-in-from-left-300 duration-300 flex flex-col">
