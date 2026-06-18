@@ -14,11 +14,13 @@ export default function RevenueBreakdown() {
     async function fetchRevenue() {
       try {
         const today = new Date().toISOString().split('T')[0];
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
         const allInvoices = await base44.entities.Invoice.list("-created_date", 1000);
-        const invoices = allInvoices.filter(i => 
-          i.created_date?.substring(0, 10) === today && 
-          (i.status === "paid" || i.status === "partial")
-        );
+        const invoices = allInvoices.filter(i => {
+          const d = i.created_date?.substring(0, 10);
+          return d && d >= thirtyDaysAgo && d <= today &&
+            (i.status === "paid" || i.status === "partial");
+        });
 
         const byMethod = {};
         invoices.forEach(inv => {
@@ -53,7 +55,7 @@ export default function RevenueBreakdown() {
             <div className="p-2 rounded-lg bg-chart-1/10">
               <DollarSign className="w-5 h-5 text-chart-1" />
             </div>
-            Daily Revenue
+            Revenue (Last 30 Days)
           </h3>
           <p className="text-xs text-muted-foreground mt-1">By Payment Method</p>
         </div>
@@ -62,7 +64,7 @@ export default function RevenueBreakdown() {
       <div className="text-3xl font-bold text-chart-1 mb-1">
         {new Intl.NumberFormat('en-MW', { style: 'currency', currency: 'MWK', maximumFractionDigits: 0 }).format(total)}
       </div>
-      <p className="text-xs text-muted-foreground mb-4">Today's paid & partial invoices</p>
+      <p className="text-xs text-muted-foreground mb-4">Paid & partial invoices, last 30 days</p>
       {data.length > 0 ? (
         <ResponsiveContainer width="100%" height={200}>
           <PieChart>
@@ -75,7 +77,7 @@ export default function RevenueBreakdown() {
           </PieChart>
         </ResponsiveContainer>
       ) : (
-        <p className="text-center py-8 text-sm text-muted-foreground">No revenue data for today</p>
+        <p className="text-center py-8 text-sm text-muted-foreground">No revenue data in the last 30 days</p>
       )}
     </div>
   );
