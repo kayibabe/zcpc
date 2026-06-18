@@ -5,6 +5,11 @@ import { Users, Calendar, FlaskConical, BedDouble, Pill, Receipt, TrendingUp, Cl
 import PatientJourneyTimeline from "@/components/PatientJourneyTimeline";
 import InventoryAlerts from "@/components/InventoryAlerts";
 import LivePulse from "@/components/LivePulse";
+import DoctorDashboard from "@/components/DoctorDashboard";
+import NurseDashboard from "@/components/NurseDashboard";
+import PharmacistDashboard from "@/components/PharmacistDashboard";
+import CashierDashboard from "@/components/CashierDashboard";
+import ReceptionistDashboard from "@/components/ReceptionistDashboard";
 import RealTimeVitals from "@/components/RealTimeVitals";
 import TriageWidget from "@/components/TriageWidget";
 import WardSummary from "@/components/WardSummary";
@@ -380,6 +385,13 @@ export default function Dashboard() {
           </div>
         </>
       )}
+
+      {/* Role-Specific Dashboard Sections */}
+      {isDoctor && <DoctorDashboard />}
+      {isNurse && <NurseDashboard />}
+      {isPharmacist && <PharmacistDashboard />}
+      {isCashier && <CashierDashboard />}
+      {isReceptionist && <ReceptionistDashboard />}
 
       {report && isAdmin && (
         <div>
