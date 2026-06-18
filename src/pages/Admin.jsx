@@ -17,6 +17,8 @@ export default function Admin() {
   const [showInvite, setShowInvite] = useState(false);
   const [inviteForm, setInviteForm] = useState({ email: "", role: "user" });
   const [updatingRole, setUpdatingRole] = useState(null);
+  const [editingUser, setEditingUser] = useState(null); // { id, full_name }
+  const [editingName, setEditingName] = useState("");
 
   const STAFF_ROLES = [
     { value: "user", label: "User (Default)" },
@@ -87,6 +89,22 @@ export default function Admin() {
       showToast("error", "Role Update Failed", err.message);
     } finally {
       setUpdatingRole(null);
+    }
+  };
+
+  const startEditName = (u) => {
+    setEditingUser(u.id);
+    setEditingName(u.full_name || "");
+  };
+
+  const saveEditName = async (userId) => {
+    try {
+      await base44.entities.User.update(userId, { full_name: editingName });
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, full_name: editingName } : u));
+    } catch (err) {
+      showToast("error", "Name Update Failed", err.message);
+    } finally {
+      setEditingUser(null);
     }
   };
 
@@ -169,7 +187,29 @@ export default function Admin() {
               <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-border"><th className="text-left py-2 px-3 font-medium text-muted-foreground">Name</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Email</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Role</th><th className="text-left py-2 px-3 font-medium text-muted-foreground">Joined</th></tr></thead><tbody>
                 {users.map(u => (
                   <tr key={u.id} className="border-b border-border/40">
-                    <td className="py-2.5 px-3 font-medium">{u.full_name || "—"}</td>
+                    <td className="py-2.5 px-3 font-medium">
+                      {editingUser === u.id ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            autoFocus
+                            className="rounded border border-border bg-background px-2 py-1 text-sm w-36"
+                            value={editingName}
+                            onChange={e => setEditingName(e.target.value)}
+                            onKeyDown={e => { if (e.key === "Enter") saveEditName(u.id); if (e.key === "Escape") setEditingUser(null); }}
+                          />
+                          <button onClick={() => saveEditName(u.id)} className="text-xs text-primary font-medium hover:underline">Save</button>
+                          <button onClick={() => setEditingUser(null)} className="text-xs text-muted-foreground hover:underline">Cancel</button>
+                        </div>
+                      ) : (
+                        <span
+                          className="cursor-pointer hover:text-primary transition-colors"
+                          title="Click to edit"
+                          onClick={() => startEditName(u)}
+                        >
+                          {u.full_name || <span className="text-muted-foreground italic">—</span>}
+                        </span>
+                      )}
+                    </td>
                     <td className="py-2.5 px-3 text-muted-foreground">{u.email}</td>
                     <td className="py-2.5 px-3">
                       <div className="flex items-center gap-2">

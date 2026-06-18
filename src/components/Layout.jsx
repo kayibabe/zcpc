@@ -111,6 +111,7 @@ export default function Layout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userRole, setUserRole] = useState("user");
+  const [currentUser, setCurrentUser] = useState(null);
   const [collapsedGroups, setCollapsedGroups] = useState({});
   const location = useLocation();
   const navigate = useNavigate();
@@ -129,6 +130,7 @@ export default function Layout() {
   useEffect(() => {
     base44.auth.me().then((u) => {
       if (u?.role) setUserRole(u.role);
+      setCurrentUser(u);
     }).catch(() => {});
   }, []);
 
@@ -305,11 +307,13 @@ export default function Layout() {
             </button>
             <div className="flex items-center gap-3 pl-3 lg:pl-4 border-l border-border/50">
               <div className="text-right hidden sm:block">
-                <p className="text-xs font-semibold text-foreground">Admin</p>
-                <p className="text-[10px] text-muted-foreground">Ready</p>
+                <p className="text-xs font-semibold text-foreground">{currentUser?.full_name || currentUser?.email?.split("@")[0] || "User"}</p>
+                <p className="text-[10px] text-muted-foreground capitalize">{currentUser?.role || "user"}</p>
               </div>
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <span className="text-xs font-bold text-primary">A</span>
+                <span className="text-xs font-bold text-primary">
+                  {(currentUser?.full_name || currentUser?.email || "U")[0].toUpperCase()}
+                </span>
               </div>
             </div>
           </div>
