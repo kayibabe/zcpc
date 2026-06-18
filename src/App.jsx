@@ -48,6 +48,7 @@ import PatientIntake from '@/pages/PatientIntake';
 import TreatmentAdherence from '@/pages/TreatmentAdherence';
 import PatientHistory from '@/pages/PatientHistory';
 import PatientOutcomeTracker from '@/pages/PatientOutcomeTracker';
+import TotpSetup from '@/pages/TotpSetup';
 import ClinicalAuditLog from '@/pages/ClinicalAuditLog';
 import EmergencyAlertSystem from '@/components/EmergencyAlertSystem';
 import Layout from '@/components/Layout';
@@ -86,6 +87,7 @@ const AuthenticatedApp = () => {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/totp-setup" element={<TotpSetup />} />
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/reception" element={<Reception />} />
