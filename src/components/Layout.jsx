@@ -153,8 +153,8 @@ export default function Layout() {
   const sidebarContent =
   <div className="flex flex-col h-full">
       <div className="flex items-center gap-3 px-4 py-6 border-b border-sidebar-border/60">
-        <div className="relative w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-          <Activity className="w-4 h-4 text-primary-foreground" />
+        <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center flex-shrink-0 shadow-md ring-1 ring-inset ring-white/20">
+          <Activity className="w-[18px] h-[18px] text-primary-foreground" strokeWidth={2.4} />
         </div>
         {!collapsed &&
       <div className="overflow-hidden">
@@ -219,13 +219,16 @@ export default function Layout() {
                         setCollapsedGroups({});
                       }
                     }}
-                    className={`flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm font-medium transition-all duration-150 ${
+                    className={`group relative flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
                     isActive ?
-                    "bg-primary/10 text-primary" :
+                    "bg-primary/10 text-primary shadow-sm" :
                     "text-sidebar-foreground/60 hover:bg-primary/5 hover:text-sidebar-foreground"}`
                     }>
-                    
-                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        {isActive && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-primary" />}
+                        <span className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                        isActive ? "bg-primary/15" : "bg-transparent group-hover:bg-primary/10"}`}>
+                          <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={isActive ? 2.4 : 2} />
+                        </span>
                         {!collapsed && <span className="truncate text-xs">{item.label}</span>}
                       </Link>);
 
