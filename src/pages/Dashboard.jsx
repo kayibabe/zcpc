@@ -434,8 +434,7 @@ export default function Dashboard() {
               </div>
             )}
           </div>
-        </div>
-      )}
+        )}
 
 
 
@@ -711,18 +710,16 @@ export default function Dashboard() {
                                     )}
                                     </div>
                                     </div>
+                                    );
+                                    })}
+                                    </div>
                                     )}
                                     </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+                                    );
+                                    })}
+                                    </div>
+                                    )}
+                                    </div>
 
           {/* Admin Quick Actions + Patient Reminders — side by side */}
           {isAdmin && (
