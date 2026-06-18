@@ -5,9 +5,11 @@ export default function AuthLayout({ icon: Icon, title, subtitle, footer, childr
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">
-            <Icon className="w-7 h-7 text-primary-foreground" aria-hidden="true" />
-          </div>
+          <img
+            src="https://media.base44.com/images/public/6a31ab83c014cd4c6a751648/294736bde_image.png"
+            alt="Zomba City Private Clinic"
+            className="w-16 h-16 rounded-2xl mb-4 mx-auto object-cover"
+          />
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className="text-2xl">🏥</span>
             <span className="text-sm font-semibold text-primary tracking-wide uppercase">Zomba City Private Clinic</span>
