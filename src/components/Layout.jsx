@@ -134,7 +134,7 @@ export default function Layout() {
 
   const handleLogout = async () => {
     await base44.auth.logout();
-    window.location.reload();
+    window.location.href = "/login";
   };
 
   const sidebarContent =
