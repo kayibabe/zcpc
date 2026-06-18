@@ -52,6 +52,54 @@ export default function MoHReports() {
     }
   };
 
+  const downloadExport = (exp, format = 'json') => {
+    try {
+      const data = typeof exp.data === "string" ? JSON.parse(exp.data) : exp.data;
+      let content, filename, type;
+
+      if (format === 'json') {
+        content = JSON.stringify(data, null, 2);
+        filename = `dhis2_export_${exp.period}.json`;
+        type = 'application/json';
+      } else if (format === 'csv') {
+        // Flatten aggregates to CSV
+        const rows = [
+          ['Facility', 'Period', 'Report Type', 'Metric', 'Value'],
+          [data.facility?.name || 'Zomba City Private Clinic', exp.period, exp.report_type, 'Total Visits', data.aggregates?.total_visits || 0],
+          ['', '', '', 'OPD Visits', data.aggregates?.opd_visits || 0],
+          ['', '', '', 'Emergency Visits', data.aggregates?.emergency_visits || 0],
+          ['', '', '', 'Inpatient Admissions', data.aggregates?.inpatient_admissions || 0],
+          ['', '', '', 'Lab Tests', data.aggregates?.total_lab_tests || 0],
+          ['', '', '', 'Deliveries', data.maternal_child_health?.deliveries || 0],
+          ['', '', '', 'Live Births', data.maternal_child_health?.live_births || 0],
+          ['', '', '', 'Neonatal Deaths', data.maternal_child_health?.neonatal_deaths || 0],
+          ['', '', '', 'Maternal Deaths', data.maternal_child_health?.maternal_deaths || 0],
+        ];
+
+        // Add KPIs
+        if (data.kpis) {
+          Object.entries(data.kpis).forEach(([key, value]) => {
+            rows.push(['', '', '', key.replace(/_/g, ' '), value]);
+          });
+        }
+
+        content = rows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+        filename = `dhis2_export_${exp.period}.csv`;
+        type = 'text/csv';
+      }
+
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Download failed: ' + err.message);
+    }
+  };
+
   const aggregates = reportData?.aggregates || {};
 
   const aggChartData = [
@@ -231,7 +279,11 @@ export default function MoHReports() {
                       }`}>{e.status}</span>
                     </td>
                     <td className="py-3 px-4">
-                      <button onClick={() => loadFromExport(e)} className="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium hover:bg-primary/20">View</button>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => loadFromExport(e)} className="px-2 py-1 bg-primary/10 text-primary rounded text-xs font-medium hover:bg-primary/20">View</button>
+                        <button onClick={() => downloadExport(e, 'json')} className="px-2 py-1 bg-chart-3/10 text-chart-3 rounded text-xs font-medium hover:bg-chart-3/20" title="Download JSON">JSON</button>
+                        <button onClick={() => downloadExport(e, 'csv')} className="px-2 py-1 bg-chart-2/10 text-chart-2 rounded text-xs font-medium hover:bg-chart-2/20" title="Download CSV">CSV</button>
+                      </div>
                     </td>
                   </tr>
                 ))}
