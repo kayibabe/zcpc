@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Scan, Plus, Save, FileImage, Upload } from "lucide-react";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function Imaging() {
   const [orders, setOrders] = useState([]);
@@ -61,15 +62,11 @@ export default function Imaging() {
 
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="section-title">Imaging & Radiology</h2>
-          <p className="text-sm text-muted-foreground mt-1">Imaging orders, study tracking, and result reporting</p>
-        </div>
+      <PageHeader title="Imaging & Radiology" subtitle="Imaging orders, study tracking, and result reporting" icon={Scan} className="mb-6">
         <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 shadow-sm">
           <Plus className="w-4 h-4" /> New Imaging Order
         </button>
-      </div>
+      </PageHeader>
 
       {showForm && (
         <div className="bg-card rounded-xl border border-border/60 p-6 shadow-sm mb-6">

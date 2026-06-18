@@ -6,6 +6,7 @@ import {
   BedDouble, Calendar, TrendingUp, X
 } from "lucide-react";
 import BedOccupancyAlert from "@/components/BedOccupancyAlert";
+import PageHeader from "@/components/ui/PageHeader";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 const PRIORITY_CONFIG = {
@@ -204,11 +205,7 @@ export default function TriageSummary() {
   return (
     <div className="page-container space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="section-title">Triage Summary</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">Real-time overview · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</p>
-        </div>
+      <PageHeader title="Triage Summary" subtitle={`Real-time overview · ${new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}`} icon={ClipboardCheck}>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1 bg-card border border-border rounded-lg p-0.5">
             <button onClick={() => setActiveView("list")} className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${activeView === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
@@ -228,7 +225,7 @@ export default function TriageSummary() {
             <RefreshCw className="w-3.5 h-3.5" /> Refresh
           </button>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Bed Occupancy Alert */}
       <BedOccupancyAlert threshold={80} />

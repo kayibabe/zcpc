@@ -12,6 +12,7 @@ import PatientJourneyTimeline from "@/components/PatientJourneyTimeline";
 import RealTimeVitals from "@/components/RealTimeVitals";
 import BedsideNotifications from "@/components/BedsideNotifications";
 import NurseTasklist from "@/components/NurseTasklist";
+import PageHeader from "@/components/ui/PageHeader";
 
 const VITAL_FIELDS = [
   { key: "bp_systolic", label: "BP Systolic", suffix: "mmHg", icon: Activity, min: 60, max: 220 },
@@ -353,12 +354,7 @@ export default function Nursing() {
 
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="section-title">Nursing Station</h2>
-          <p className="text-sm text-muted-foreground mt-1">Overview, triage, vital signs, medication & notes</p>
-        </div>
-      </div>
+      <PageHeader title="Nursing Station" subtitle="Overview, triage, vital signs, medication & notes" icon={Stethoscope} className="mb-4" />
 
       {/* Quick-Action Bar — always visible */}
       <div className="bg-card rounded-xl border border-border/60 shadow-sm p-3 mb-4 flex items-center gap-2 flex-wrap">

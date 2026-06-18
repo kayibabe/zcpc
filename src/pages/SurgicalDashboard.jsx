@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Package, AlertTriangle, TrendingUp, Clock, CheckCircle2, Plus, Eye, Zap } from "lucide-react";
 import SurgicalRequisitionModal from "@/components/SurgicalRequisitionModal";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function SurgicalDashboard() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -71,18 +72,14 @@ export default function SurgicalDashboard() {
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Surgery Team Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Real-time supply tracking & requisition management</p>
-        </div>
+      <PageHeader title="Surgery Team Dashboard" subtitle="Real-time supply tracking & requisition management" icon={Package} className="mb-8">
         {currentUser && (
           <div className="text-right">
             <p className="text-xs font-semibold text-muted-foreground uppercase">Logged in as</p>
             <p className="text-sm font-semibold">{currentUser?.display_name || currentUser?.full_name || currentUser?.email}</p>
           </div>
         )}
-      </div>
+      </PageHeader>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { FileBarChart, Download, Loader2, Users, FlaskConical, BedDouble, Baby, TrendingUp, Calendar, Activity } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import PageHeader from "@/components/ui/PageHeader";
 
 const COLORS = ["hsl(194, 65%, 42%)", "hsl(38, 92%, 50%)", "hsl(160, 60%, 40%)", "hsl(280, 50%, 50%)", "hsl(340, 65%, 50%)"];
 
@@ -130,28 +131,22 @@ export default function MoHReports() {
 
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="section-title">MoH & DHIS2 Reporting</h2>
-          <p className="text-sm text-muted-foreground mt-1">Ministry of Health aggregate data and export history</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <input
-            type="month"
-            value={currentMonth}
-            onChange={e => setCurrentMonth(e.target.value)}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <button
-            onClick={generateReport}
-            disabled={exporting}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 shadow-sm disabled:opacity-50"
-          >
-            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            {exporting ? "Generating..." : "Generate Report"}
-          </button>
-        </div>
-      </div>
+      <PageHeader title="MoH & DHIS2 Reporting" subtitle="Ministry of Health aggregate data and export history" icon={FileBarChart} className="mb-6">
+        <input
+          type="month"
+          value={currentMonth}
+          onChange={e => setCurrentMonth(e.target.value)}
+          className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+        <button
+          onClick={generateReport}
+          disabled={exporting}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 shadow-sm disabled:opacity-50"
+        >
+          {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+          {exporting ? "Generating..." : "Generate Report"}
+        </button>
+      </PageHeader>
 
       {reportData ? (
         <>

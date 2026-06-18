@@ -6,6 +6,7 @@ import ShiftManagement from "@/components/ShiftManagement";
 import StaffPerformance from "@/components/StaffPerformance";
 import CashierShiftAudit from "@/components/CashierShiftAudit";
 import DHIS2ReportsDownloads from "@/components/AdminDashboard/DHIS2ReportsDownloads";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function Admin() {
   const [users, setUsers] = useState([]);
@@ -169,9 +170,7 @@ export default function Admin() {
 
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between mb-6">
-        <div><h2 className="section-title">Administration</h2><p className="text-sm text-muted-foreground mt-1">User management, scheme configuration, DHIS2 exports</p></div>
-      </div>
+      <PageHeader title="Administration" subtitle="User management, scheme configuration, DHIS2 exports" icon={Shield} className="mb-6" />
 
       <div className="bg-card rounded-xl border border-border/60 shadow-sm">
         <div className="border-b border-border flex">

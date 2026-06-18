@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, GitBranch } from "lucide-react";
 import moment from "moment";
 import ShiftCalendar from "@/components/ShiftCalendar";
+import PageHeader from "@/components/ui/PageHeader";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -89,23 +90,17 @@ export default function Calendar() {
 
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="section-title">Calendar</h2>
-          <p className="text-sm text-muted-foreground mt-1">All clinic appointments synced across departments</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-muted transition-colors">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <h3 className="font-heading text-lg font-semibold min-w-[160px] text-center">
-            {currentDate.format("MMMM YYYY")}
-          </h3>
-          <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-muted transition-colors">
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+      <PageHeader title="Calendar" subtitle="All clinic appointments synced across departments" icon={CalendarIcon} className="mb-6">
+        <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-muted transition-colors">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <h3 className="font-heading text-lg font-semibold min-w-[160px] text-center">
+          {currentDate.format("MMMM YYYY")}
+        </h3>
+        <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-muted transition-colors">
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </PageHeader>
 
       {/* Weekday headers */}
       <div className="grid grid-cols-7 mb-1">

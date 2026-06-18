@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Calendar as CalendarIcon, Plus, Clock, Users, Check, X, Square, CheckSquare, ChevronDown } from "lucide-react";
+import PageHeader from "@/components/ui/PageHeader";
 
 export default function Appointments() {
   const [appointments, setAppointments] = useState([]);
@@ -85,15 +86,11 @@ export default function Appointments() {
 
   return (
     <div className="page-container">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="section-title">Appointments</h2>
-          <p className="text-sm text-muted-foreground mt-1">Schedule and manage patient appointments</p>
-        </div>
+      <PageHeader title="Appointments" subtitle="Schedule and manage patient appointments" icon={CalendarIcon} className="mb-6">
         <button onClick={() => setShowForm(!showForm)} className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm">
           <Plus className="w-4 h-4" /> New Appointment
         </button>
-      </div>
+      </PageHeader>
 
       {showForm && (
         <div className="bg-card rounded-xl border border-border/60 p-6 shadow-sm mb-6">
