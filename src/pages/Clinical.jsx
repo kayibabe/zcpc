@@ -10,6 +10,7 @@ import RealTimeVitals from "@/components/RealTimeVitals";
 import SignaturePad from "@/components/SignaturePad";
 import SignatureStatus from "@/components/SignatureStatus";
 import ClinicalQuickNav from "@/components/ClinicalQuickNav";
+import ClinicalQuickActions from "@/components/ClinicalQuickActions";
 import DischargeSummaryTemplate from "@/components/DischargeSummaryTemplate";
 import PageHeader from "@/components/ui/PageHeader";
 
@@ -505,6 +506,7 @@ export default function Clinical() {
 
              {/* Right main workspace */}
              <div className="flex-1 p-4 space-y-4 overflow-y-auto max-h-[700px]">
+               <ClinicalQuickActions onTabChange={setActiveTab} />
                <ClinicalQuickNav activeTab={activeTab} onTabChange={setActiveTab} />
                 {/* Patient Journey Timeline */}
                 {journey && (
