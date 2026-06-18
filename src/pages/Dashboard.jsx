@@ -10,6 +10,7 @@ import NurseDashboard from "@/components/NurseDashboard";
 import PharmacistDashboard from "@/components/PharmacistDashboard";
 import CashierDashboard from "@/components/CashierDashboard";
 import ReceptionistDashboard from "@/components/ReceptionistDashboard";
+import RoleBasedReportDownload from "@/components/RoleBasedReportDownload";
 import RealTimeVitals from "@/components/RealTimeVitals";
 import TriageWidget from "@/components/TriageWidget";
 import WardSummary from "@/components/WardSummary";
@@ -393,6 +394,11 @@ export default function Dashboard() {
       {isCashier && <CashierDashboard />}
       {isReceptionist && <ReceptionistDashboard />}
 
+      {/* Role-Based Report Downloads */}
+      {(isAdmin || isDoctor || isNurse || isPharmacist || isCashier || isReceptionist) && (
+        <RoleBasedReportDownload userRole={userRole} />
+      )}
+
       {report && isAdmin && (
         <div>
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Operational Summary</h2>
@@ -706,7 +712,7 @@ export default function Dashboard() {
                                       </div>
                                     )}
                                     {isBreached && (
-                                      <div className="w-1.5 h-1.5 rounded-full bg-clinical-critical animate-pulse" title="SLA Breached" />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-clinical-critical animate-pulse" title="SLA Breached" />
                                     )}
                                     </div>
                                     </div>
