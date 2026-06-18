@@ -722,10 +722,14 @@ export default function Dashboard() {
                           </div>
                         )}
                       </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
-          {isAdmin && (
-            <>
-          {/* Admin Quick Actions + Patient Reminders — side by side */}
+                      {isAdmin && (
+                      <>
+                      {/* Admin Quick Actions + Patient Reminders — side by side */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="bg-white rounded-lg border border-border p-5">
               <h3 className="font-heading text-sm font-semibold mb-3 flex items-center gap-2">
