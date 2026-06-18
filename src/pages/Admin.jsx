@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Shield, Plus, Save, Users, UserPlus, Upload, FileBarChart, Settings, Building2, Loader2, ClipboardList, Filter, X, Clock, TrendingUp, Trash2, DollarSign } from "lucide-react";
+import { Shield, Plus, Save, Users, UserPlus, Upload, FileBarChart, Settings, Building2, Loader2, ClipboardList, Filter, X, Clock, TrendingUp, Trash2, DollarSign, CheckCircle2, AlertCircle, Mail } from "lucide-react";
 import WasteManagement from "@/components/WasteManagement";
 import ShiftManagement from "@/components/ShiftManagement";
 import StaffPerformance from "@/components/StaffPerformance";
@@ -36,6 +36,12 @@ export default function Admin() {
   const [showSchemeForm, setShowSchemeForm] = useState(false);
   const [schemeForm, setSchemeForm] = useState({ name: "", code: "", contact_phone: "", contact_email: "", coverage_details: "" });
   const [exporting, setExporting] = useState(false);
+  const [toast, setToast] = useState(null); // { type: 'success'|'error', title, message }
+
+  const showToast = (type, title, message) => {
+    setToast({ type, title, message });
+    setTimeout(() => setToast(null), 6000);
+  };
 
   useEffect(() => {
     async function load() {
@@ -62,11 +68,13 @@ export default function Admin() {
       // Platform only accepts "user" or "admin" at invite time; role is updated after registration
       const inviteRole = ["admin"].includes(inviteForm.role) ? "admin" : "user";
       await base44.users.inviteUser(inviteForm.email, inviteRole);
+      const roleLabel = STAFF_ROLES.find(r => r.value === inviteForm.role)?.label || inviteForm.role;
+      const sentEmail = inviteForm.email;
       setInviteForm({ email: "", role: "user" });
       setShowInvite(false);
-      alert(`Invitation sent to ${inviteForm.email}. After they register, update their role to "${inviteForm.role}" in the users table.`);
+      showToast("success", "Invitation Sent!", `An invite email was sent to ${sentEmail}. Once they register, update their role to "${roleLabel}" using the dropdown in the users table.`);
     } catch (err) {
-      alert("Error: " + err.message);
+      showToast("error", "Invite Failed", err.message);
     }
   };
 
@@ -76,7 +84,7 @@ export default function Admin() {
       await base44.entities.User.update(userId, { role: newRole });
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
     } catch (err) {
-      alert("Error updating role: " + err.message);
+      showToast("error", "Role Update Failed", err.message);
     } finally {
       setUpdatingRole(null);
     }
@@ -113,7 +121,7 @@ export default function Admin() {
       const e = await base44.entities.DHIS2Export.list("-created_date", 20);
       setExports(e);
     } catch (err) {
-      alert("Export failed: " + (err.response?.data?.error || err.message));
+      showToast("error", "Export Failed", err.response?.data?.error || err.message);
     } finally {
       setExporting(false);
     }
@@ -320,6 +328,38 @@ export default function Admin() {
           )}
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-6 right-6 z-50 max-w-sm w-full shadow-2xl rounded-2xl border overflow-hidden ${
+          toast.type === "success" ? "bg-white border-emerald-200" : "bg-white border-red-200"
+        }`}>
+          <div className={`h-1 w-full ${toast.type === "success" ? "bg-emerald-500" : "bg-red-500"}`} />
+          <div className="p-4 flex items-start gap-3">
+            <div className={`mt-0.5 flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center ${
+              toast.type === "success" ? "bg-emerald-100" : "bg-red-100"
+            }`}>
+              {toast.type === "success"
+                ? <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                : <AlertCircle className="w-5 h-5 text-red-600" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className={`text-sm font-semibold ${toast.type === "success" ? "text-emerald-900" : "text-red-900"}`}>
+                {toast.title}
+              </p>
+              <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">{toast.message}</p>
+              {toast.type === "success" && (
+                <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600 font-medium">
+                  <Mail className="w-3.5 h-3.5" /> Check their inbox for the invite link
+                </div>
+              )}
+            </div>
+            <button onClick={() => setToast(null)} className="flex-shrink-0 text-gray-400 hover:text-gray-600 mt-0.5">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
