@@ -3,68 +3,54 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 // Base32 decoder
 function base32Decode(encoded) {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  let output = new Uint8Array(Math.floor((encoded.length * 5) / 8));
-  let outIdx = 0;
+  const bytes = [];
   let bits = 0;
   let value = 0;
 
-  for (let i = 0; i < encoded.length; i++) {
-    const idx = alphabet.indexOf(encoded[i].toUpperCase());
-    if (idx === -1) throw new Error('Invalid character in base32: ' + encoded[i]);
-    
+  for (const char of encoded.toUpperCase()) {
+    const idx = alphabet.indexOf(char);
+    if (idx === -1) throw new Error('Invalid base32 character');
     value = (value << 5) | idx;
     bits += 5;
-    
     if (bits >= 8) {
       bits -= 8;
-      output[outIdx++] = (value >> bits) & 255;
+      bytes.push((value >> bits) & 0xff);
     }
   }
-  
-  return output.slice(0, outIdx);
+  return new Uint8Array(bytes);
 }
 
-// HMAC-SHA1
-async function hmacSha1(key, message) {
-  const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
-  return new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, message));
-}
-
-// TOTP verification - RFC 6238
-async function verifyTOTP(secret, token, window = 1) {
+// TOTP RFC 6238 - verify a token with ±1 time window
+async function verifyTOTP(secret, token) {
   const key = base32Decode(secret);
-  const tokenNum = parseInt(token, 10);
+  const code = parseInt(token, 10);
   
-  if (isNaN(tokenNum) || tokenNum < 0 || tokenNum > 999999) {
+  if (isNaN(code) || code < 0 || code > 999999 || token.length !== 6) {
     return false;
   }
-  
-  const now = Math.floor(Date.now() / 1000 / 30);
-  
-  for (let offset = -window; offset <= window; offset++) {
-    let counter = now + offset;
-    const counterBytes = new Uint8Array(8);
+
+  const now = Math.floor(Date.now() / 30000);
+
+  for (let t = now - 1; t <= now + 1; t++) {
+    const counter = new ArrayBuffer(8);
+    const view = new DataView(counter);
+    view.setBigInt64(0, BigInt(t), false);
     
-    for (let i = 7; i >= 0; i--) {
-      counterBytes[i] = counter & 0xff;
-      counter = counter >>> 8;
-    }
+    const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+    const hmac = new Uint8Array(await crypto.subtle.sign('HMAC', cryptoKey, counter));
     
-    const hmac = await hmacSha1(key, counterBytes);
-    const offset_val = hmac[19] & 0x0f;
-    
-    const code = (
-      ((hmac[offset_val] & 0x7f) << 24) |
-      ((hmac[offset_val + 1] & 0xff) << 16) |
-      ((hmac[offset_val + 2] & 0xff) << 8) |
-      (hmac[offset_val + 3] & 0xff)
+    const offset = hmac[19] & 0x0f;
+    const truncated = (
+      ((hmac[offset] & 0x7f) << 24) |
+      ((hmac[offset + 1] & 0xff) << 16) |
+      ((hmac[offset + 2] & 0xff) << 8) |
+      (hmac[offset + 3] & 0xff)
     ) >>> 0;
     
-    if ((code % 1000000) === tokenNum) {
+    if ((truncated % 1000000) === code) {
       return true;
     }
   }
-  
   return false;
 }
 
@@ -97,7 +83,7 @@ Deno.serve(async (req) => {
     }
 
     // Verify with RFC 6238 implementation
-    const verified = await verifyTOTP(totp_secret, token, 1);
+    const verified = await verifyTOTP(totp_secret, token);
 
     if (!verified) {
       return Response.json({ verified: false });
