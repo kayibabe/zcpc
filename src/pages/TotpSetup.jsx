@@ -46,7 +46,7 @@ export default function TotpSetup() {
     try {
       const response = await base44.functions.invoke('verifyTotp', {
         token: confirmCode,
-        secret: secret,
+        secret: secret, // Pass secret during setup when not yet saved to DB
       });
 
       if (response.data.verified) {
