@@ -712,20 +712,20 @@ export default function Dashboard() {
                                       </div>
                                     )}
                                     {isBreached && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-clinical-critical animate-pulse" title="SLA Breached" />
+                                      <div className="w-1.5 h-1.5 rounded-full bg-clinical-critical animate-pulse" title="SLA Breached" />
                                     )}
                                   </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
-                    )}
 
-                    {/* Admin Quick Actions + Patient Reminders — side by side */}
-                    {isAdmin && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          {isAdmin && (
+            <>
+          {/* Admin Quick Actions + Patient Reminders — side by side */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="bg-white rounded-lg border border-border p-5">
               <h3 className="font-heading text-sm font-semibold mb-3 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-primary" /> Quick Actions
@@ -772,10 +772,8 @@ export default function Dashboard() {
               )}
             </div>
             </div>
-            )}
 
-            <div className="space-y-6">
-           <RoleBasedReportDownload userRole={userRole} />
+            <RoleBasedReportDownload userRole={userRole} />
 
            {/* Live HIMS Pulse — Admin, Doctors, Nurses, Cashiers only */}
            {(isAdmin || isDoctor || isNurse || isCashier) && <LivePulse />}
@@ -848,9 +846,10 @@ export default function Dashboard() {
                 </div>
               </div>
               )}
-              </div>
-              </div>
+              </>
               )}
+
+              <div className="space-y-6">
 
           {/* Batch Export Modal */}
           {isAdmin && batchModal && (
