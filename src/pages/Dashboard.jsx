@@ -440,7 +440,7 @@ export default function Dashboard() {
 
 
       {/* Role-Specific Visualizations */}
-      {(isAdmin || isReceptionist || isNurse) && (
+      {(isAdmin || isNurse) && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TriageWidget />
 
@@ -502,6 +502,7 @@ export default function Dashboard() {
         </div>
         )}
 
+      {(isAdmin || isReceptionist) && (
         <div className="bg-white rounded-lg border border-border p-5">
          <div className="mb-4">
             <h3 className="font-heading text-sm font-semibold">Current Queue Status</h3>
@@ -572,8 +573,9 @@ export default function Dashboard() {
             </div>
           ) : (
             <p className="text-xs text-muted-foreground py-12 text-center">Queue is clear</p>
-            )}
-            </div>
+             )}
+             </div>
+            )}  
 
       {(isAdmin || isDoctor || isNurse) && <DepartmentHeatmap />}
 
@@ -583,7 +585,7 @@ export default function Dashboard() {
 
       {(isAdmin || isNurse) && <WardOccupancyChart compact />}
 
-      {(isAdmin || isDoctor || isNurse || isReceptionist || isCashier) && (
+      {(isAdmin || isDoctor || isNurse || isCashier) && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2 bg-white rounded-lg border border-border p-5">
           <h3 className="font-heading text-sm font-semibold mb-4 flex items-center gap-2">
@@ -707,9 +709,10 @@ export default function Dashboard() {
                                     {isBreached && (
                                       <div className="w-1.5 h-1.5 rounded-full bg-clinical-critical animate-pulse" title="SLA Breached" />
                                     )}
-                                  </div>
-                                </div>
-                              </div>
+                                    </div>
+                                    </div>
+                                    )}
+                                    </div>
                             );
                           })}
                         </div>
@@ -721,7 +724,8 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Quick Actions + Patient Reminders — side by side */}
+          {/* Admin Quick Actions + Patient Reminders — side by side */}
+          {isAdmin && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="bg-white rounded-lg border border-border p-5">
               <h3 className="font-heading text-sm font-semibold mb-3 flex items-center gap-2">
@@ -768,12 +772,12 @@ export default function Dashboard() {
                 <div className="mt-3 p-3 bg-destructive/5 rounded-lg text-xs text-destructive">{reminderResult.error}</div>
               )}
             </div>
-          </div>
-        </div>
+            </div>
+            )}
 
-        <div className="space-y-6">
-           {/* Live HIMS Pulse */}
-           <LivePulse />
+            <div className="space-y-6">
+           {/* Live HIMS Pulse — Admin, Doctors, Nurses, Cashiers only */}
+           {(isAdmin || isDoctor || isNurse || isCashier) && <LivePulse />}
 
            {/* Notifications Panel */}
            {notifications.length > 0 && (
@@ -796,8 +800,8 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* SLA Breach Alerts */}
-          {(() => {
+          {/* SLA Breach Alerts — Admin, Doctors, Nurses only */}
+          {(isAdmin || isDoctor || isNurse) && (() => {
             const breached = activeJourneys.filter(j => {
               try {
                 const history = j.stage_history ? JSON.parse(j.stage_history) : [];
@@ -826,25 +830,26 @@ export default function Dashboard() {
                   ))}
                 </div>
               </div>
-            );
-          })()}
+              );
+              })()}
 
-          {dailyReport?.visit_breakdown && Object.keys(dailyReport.visit_breakdown).length > 0 && (
-            <div className="bg-white rounded-lg border border-border p-5">
-              <h3 className="font-heading text-sm font-semibold mb-3">Visit Breakdown</h3>
-              <div className="space-y-2">
-                {Object.entries(dailyReport.visit_breakdown).map(([type, count]) => (
-                  <div key={type} className="flex items-center justify-between text-sm">
-                    <span className="capitalize">{type.replace(/_/g, ' ')}</span>
-                    <span className="font-semibold">{count}</span>
-                  </div>
-                ))}
+              {/* Visit Breakdown — Admin only */}
+              {isAdmin && dailyReport?.visit_breakdown && Object.keys(dailyReport.visit_breakdown).length > 0 && (
+              <div className="bg-white rounded-lg border border-border p-5">
+                <h3 className="font-heading text-sm font-semibold mb-3">Visit Breakdown</h3>
+                <div className="space-y-2">
+                  {Object.entries(dailyReport.visit_breakdown).map(([type, count]) => (
+                    <div key={type} className="flex items-center justify-between text-sm">
+                      <span className="capitalize">{type.replace(/_/g, ' ')}</span>
+                      <span className="font-semibold">{count}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-          </div>
-          </div>
-          )}
+              )}
+              </div>
+              </div>
+              )}
 
           {/* Batch Export Modal */}
           {isAdmin && batchModal && (
