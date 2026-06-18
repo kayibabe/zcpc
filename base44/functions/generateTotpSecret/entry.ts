@@ -15,13 +15,13 @@ Deno.serve(async (req) => {
       length: 32,
     });
 
-    // Generate QR code as a data URL
-    const qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url);
+    // Generate QR code as SVG string
+    const qrCodeUrl = await qrcode.toString(secret.otpauth_url, { type: 'image/svg+xml' });
 
     // Return the secret and QR code (secret will be encrypted on client before storage)
     return Response.json({
       secret: secret.base32,
-      qrCodeUrl: qrCodeUrl,
+      qrCodeUrl: 'data:image/svg+xml;base64,' + btoa(qrCodeUrl),
       otpauth_url: secret.otpauth_url,
     });
   } catch (error) {
