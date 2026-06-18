@@ -314,11 +314,11 @@ export default function Layout() {
             <div className="flex items-center gap-2 pl-3 lg:pl-4 border-l border-border/50">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                 <span className="text-xs font-bold text-primary">
-                  {(currentUser?.full_name || currentUser?.email || "U")[0]?.toUpperCase()}
+                  {(currentUser?.display_name || currentUser?.full_name || currentUser?.email || "U")[0]?.toUpperCase()}
                 </span>
               </div>
               <div className="text-left">
-                <p className="text-xs font-semibold text-foreground leading-tight truncate max-w-[100px] sm:max-w-[140px]">{currentUser?.full_name || currentUser?.email || "User"}</p>
+                <p className="text-xs font-semibold text-foreground leading-tight truncate max-w-[100px] sm:max-w-[140px]">{currentUser?.display_name || currentUser?.full_name || currentUser?.email || "User"}</p>
                 <p className="text-[10px] text-muted-foreground capitalize">{currentUser?.role || "user"}</p>
               </div>
             </div>

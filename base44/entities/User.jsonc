@@ -20,6 +20,10 @@
         "surgical_lead",
         "store_manager"
       ]
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Custom display name set by admin"
     }
   },
   "required": [

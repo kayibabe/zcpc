@@ -94,13 +94,13 @@ export default function Admin() {
 
   const startEditName = (u) => {
     setEditingUser(u.id);
-    setEditingName(u.full_name || "");
+    setEditingName(u.display_name || u.full_name || "");
   };
 
   const saveEditName = async (userId) => {
     try {
-      await base44.entities.User.update(userId, { full_name: editingName });
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, full_name: editingName } : u));
+      await base44.entities.User.update(userId, { display_name: editingName });
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, display_name: editingName } : u));
     } catch (err) {
       showToast("error", "Name Update Failed", err.message);
     } finally {
@@ -206,7 +206,7 @@ export default function Admin() {
                           title="Click to edit"
                           onClick={() => startEditName(u)}
                         >
-                          {u.full_name || <span className="text-muted-foreground italic">—</span>}
+                          {u.display_name || u.full_name || <span className="text-muted-foreground italic">—</span>}
                         </span>
                       )}
                     </td>
