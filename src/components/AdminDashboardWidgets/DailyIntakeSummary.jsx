@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Users, TrendingUp, Clock } from "lucide-react";
+import { Users, AlertTriangle, Clock, Activity, Heart, Stethoscope } from "lucide-react";
 
 export default function DailyIntakeSummary() {
   const [stats, setStats] = useState({ total: 0, emergency: 0, outpatient: 0, inpatient: 0 });
@@ -32,41 +32,53 @@ export default function DailyIntakeSummary() {
   if (loading) return <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>;
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <div className="stat-card">
-        <div className="flex items-center justify-between">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="stat-card bg-gradient-to-br from-white to-primary/5 border-primary/20">
+        <div className="flex items-start justify-between">
           <div>
             <p className="clinical-label">Total Intake</p>
-            <p className="clinical-value text-primary">{stats.total}</p>
+            <p className="clinical-value text-primary text-4xl">{stats.total}</p>
+            <p className="text-xs text-muted-foreground mt-2">patients today</p>
           </div>
-          <Users className="w-8 h-8 text-primary/20" />
+          <div className="p-2.5 rounded-lg bg-primary/10">
+            <Users className="w-6 h-6 text-primary" />
+          </div>
         </div>
       </div>
-      <div className="stat-card">
-        <div className="flex items-center justify-between">
+      <div className={`stat-card bg-gradient-to-br from-white ${stats.emergency > 0 ? 'to-destructive/5 border-destructive/20' : 'to-muted/5'}`}>
+        <div className="flex items-start justify-between">
           <div>
             <p className="clinical-label">Emergency</p>
-            <p className="clinical-value text-destructive">{stats.emergency}</p>
+            <p className={`clinical-value text-4xl ${stats.emergency > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>{stats.emergency}</p>
+            <p className="text-xs text-muted-foreground mt-2">critical cases</p>
           </div>
-          <TrendingUp className="w-8 h-8 text-destructive/20" />
+          <div className={`p-2.5 rounded-lg ${stats.emergency > 0 ? 'bg-destructive/10 animate-pulse' : 'bg-muted/10'}`}>
+            <AlertTriangle className={`w-6 h-6 ${stats.emergency > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
+          </div>
         </div>
       </div>
-      <div className="stat-card">
-        <div className="flex items-center justify-between">
+      <div className="stat-card bg-gradient-to-br from-white to-chart-2/5 border-chart-2/20">
+        <div className="flex items-start justify-between">
           <div>
             <p className="clinical-label">Outpatient</p>
-            <p className="clinical-value text-chart-2">{stats.outpatient}</p>
+            <p className="clinical-value text-chart-2 text-4xl">{stats.outpatient}</p>
+            <p className="text-xs text-muted-foreground mt-2">walk-in cases</p>
           </div>
-          <Clock className="w-8 h-8 text-chart-2/20" />
+          <div className="p-2.5 rounded-lg bg-chart-2/10">
+            <Stethoscope className="w-6 h-6 text-chart-2" />
+          </div>
         </div>
       </div>
-      <div className="stat-card">
-        <div className="flex items-center justify-between">
+      <div className="stat-card bg-gradient-to-br from-white to-chart-4/5 border-chart-4/20">
+        <div className="flex items-start justify-between">
           <div>
             <p className="clinical-label">Inpatient</p>
-            <p className="clinical-value text-chart-4">{stats.inpatient}</p>
+            <p className="clinical-value text-chart-4 text-4xl">{stats.inpatient}</p>
+            <p className="text-xs text-muted-foreground mt-2">admitted</p>
           </div>
-          <Users className="w-8 h-8 text-chart-4/20" />
+          <div className="p-2.5 rounded-lg bg-chart-4/10">
+            <Heart className="w-6 h-6 text-chart-4" />
+          </div>
         </div>
       </div>
     </div>

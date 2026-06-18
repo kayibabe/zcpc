@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { DollarSign } from "lucide-react";
+import { DollarSign, TrendingUp } from "lucide-react";
 
 export default function RevenueBreakdown() {
   const [data, setData] = useState([]);
@@ -46,16 +46,23 @@ export default function RevenueBreakdown() {
   if (loading) return <div className="p-4 text-center text-sm text-muted-foreground">Loading...</div>;
 
   return (
-    <div className="stat-card">
+    <div className="stat-card bg-gradient-to-br from-white to-chart-1/5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-foreground flex items-center gap-2">
-          <DollarSign className="w-4 h-4 text-chart-1" />
-          Daily Revenue by Payment Method
-        </h3>
+        <div>
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-chart-1/10">
+              <DollarSign className="w-5 h-5 text-chart-1" />
+            </div>
+            Daily Revenue
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">By Payment Method</p>
+        </div>
+        {total > 0 && <TrendingUp className="w-5 h-5 text-chart-3 opacity-60" />}
       </div>
-      <div className="text-2xl font-bold text-chart-1 mb-4">
+      <div className="text-3xl font-bold text-chart-1 mb-1">
         {new Intl.NumberFormat('en-MW', { style: 'currency', currency: 'MWK', maximumFractionDigits: 0 }).format(total)}
       </div>
+      <p className="text-xs text-muted-foreground mb-4">Today's paid & partial invoices</p>
       {data.length > 0 ? (
         <ResponsiveContainer width="100%" height={200}>
           <PieChart>
