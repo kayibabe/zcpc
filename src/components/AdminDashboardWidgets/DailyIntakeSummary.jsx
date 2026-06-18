@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Users, AlertTriangle, Clock, Activity, Heart, Stethoscope } from "lucide-react";
+import { UserPlus, Siren, Footprints, BedDouble } from "lucide-react";
 
 export default function DailyIntakeSummary() {
   const [stats, setStats] = useState({ total: 0, emergency: 0, outpatient: 0, inpatient: 0 });
@@ -41,7 +41,7 @@ export default function DailyIntakeSummary() {
             <p className="text-xs text-muted-foreground mt-2">patients today</p>
           </div>
           <div className="p-2.5 rounded-lg bg-primary/10">
-            <Users className="w-6 h-6 text-primary" />
+            <UserPlus className="w-6 h-6 text-primary" />
           </div>
         </div>
       </div>
@@ -53,7 +53,7 @@ export default function DailyIntakeSummary() {
             <p className="text-xs text-muted-foreground mt-2">critical cases</p>
           </div>
           <div className={`p-2.5 rounded-lg ${stats.emergency > 0 ? 'bg-destructive/10 animate-pulse' : 'bg-muted/10'}`}>
-            <AlertTriangle className={`w-6 h-6 ${stats.emergency > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
+            <Siren className={`w-6 h-6 ${stats.emergency > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
           </div>
         </div>
       </div>
@@ -65,7 +65,7 @@ export default function DailyIntakeSummary() {
             <p className="text-xs text-muted-foreground mt-2">walk-in cases</p>
           </div>
           <div className="p-2.5 rounded-lg bg-chart-2/10">
-            <Stethoscope className="w-6 h-6 text-chart-2" />
+            <Footprints className="w-6 h-6 text-chart-2" />
           </div>
         </div>
       </div>
@@ -77,7 +77,7 @@ export default function DailyIntakeSummary() {
             <p className="text-xs text-muted-foreground mt-2">admitted</p>
           </div>
           <div className="p-2.5 rounded-lg bg-chart-4/10">
-            <Heart className="w-6 h-6 text-chart-4" />
+            <BedDouble className="w-6 h-6 text-chart-4" />
           </div>
         </div>
       </div>
