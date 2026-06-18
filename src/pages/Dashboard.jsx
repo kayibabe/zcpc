@@ -64,6 +64,7 @@ function StatCard({ label, value, sub, color, to, metaKey }) {
 }
 
 export default function Dashboard() {
+  const [currentUser, setCurrentUser] = useState(null);
   const [stats, setStats] = useState({ patients: 0, appointments: 0, labOrders: 0, occupiedBeds: 0, drugs: 0, revenue: 0 });
   const [recentVisits, setRecentVisits] = useState([]);
   const [dailyReport, setDailyReport] = useState(null);
@@ -177,6 +178,18 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    async function fetchUser() {
+      try {
+        const u = await base44.auth.me();
+        setCurrentUser(u);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
     async function load() {
       try {
         const [patients, appointments, labOrders, beds, drugs, visits, invoices] = await Promise.all([
@@ -276,7 +289,7 @@ export default function Dashboard() {
     return Math.round((Date.now() - new Date(journey.created_date).getTime()) / 60000);
   };
 
-  if (loading) {
+  if (loading || !currentUser) {
     return (
       <div className="page-container flex items-center justify-center h-64">
         <div className="w-8 h-8 border-3 border-muted border-t-primary rounded-full animate-spin" />
@@ -285,6 +298,16 @@ export default function Dashboard() {
   }
 
   const report = dailyReport?.summary;
+  const userRole = currentUser?.role || "user";
+  const isAdmin = userRole === "admin";
+  const isDoctor = ["doctor", "clinician"].includes(userRole);
+  const isNurse = ["nurse", "midwife"].includes(userRole);
+  const isPharmacist = userRole === "pharmacist";
+  const isLabTech = userRole === "lab_technician";
+  const isRadiographer = userRole === "radiographer";
+  const isCashier = userRole === "cashier";
+  const isReceptionist = userRole === "receptionist";
+  const isSurgicalLead = userRole === "surgical_lead";
 
   return (
     <div className="page-container space-y-8">
@@ -292,23 +315,30 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Zomba City Private Clinic — {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Zomba City Private Clinic — {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
+            {currentUser && <span className="ml-2 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold capitalize">{userRole}</span>}
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={syncShiftReports}
-            disabled={shiftSyncLoading}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium hover:bg-muted transition-colors disabled:opacity-50"
-          >
-            <RefreshCcw className={`w-3.5 h-3.5 ${shiftSyncLoading ? 'animate-spin' : ''}`} />
-            {shiftSyncLoading ? 'Syncing...' : 'Sync Shifts'}
-          </button>
-          <button
-            onClick={() => setBatchModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90"
-          >
-            <FileDown className="w-3.5 h-3.5" /> Export
-          </button>
+          {(isAdmin || isNurse) && (
+            <button
+              onClick={syncShiftReports}
+              disabled={shiftSyncLoading}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-xs font-medium hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              <RefreshCcw className={`w-3.5 h-3.5 ${shiftSyncLoading ? 'animate-spin' : ''}`} />
+              {shiftSyncLoading ? 'Syncing...' : 'Sync Shifts'}
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => setBatchModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90"
+            >
+              <FileDown className="w-3.5 h-3.5" /> Export
+            </button>
+          )}
           <button
             onClick={refreshDailyReport}
             disabled={reportLoading}
@@ -320,34 +350,38 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <InventoryAlerts />
-      <BedOccupancyAlert threshold={80} />
+      {(isAdmin || isNurse || isPharmacist) && <InventoryAlerts />}
+      {(isAdmin || isNurse) && <BedOccupancyAlert threshold={80} />}
 
-      {/* KPI Cards */}
+      {/* Role-Specific KPI Cards */}
       <div>
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Key Performance Indicators</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <StatCard label="Registered Patients" value={stats.patients} to="/reception" metaKey="patients" />
-          <StatCard label="Today's Appointments" value={report?.total_appointments_today ?? stats.appointments} sub={report ? `${report.appointments_completed} completed` : null} to="/appointments" metaKey="appointments" />
-          <StatCard label="Pending Lab Orders" value={report?.pending_lab_orders ?? stats.labOrders} to="/lab" metaKey="labOrders" />
-          <StatCard label="Occupied Beds" value={report?.active_inpatients ?? stats.occupiedBeds} to="/inpatient" metaKey="beds" />
-          <StatCard label="Low Stock Drugs" value={report?.drugs_low_stock ?? stats.drugs} color={report?.drugs_low_stock > 0 ? 'warning' : 'success'} to="/pharmacy" metaKey="drugs" />
-          <StatCard label="Revenue (MWK)" value={(report?.total_revenue_mwk ?? stats.revenue).toLocaleString()} to="/billing" metaKey="revenue" />
+        <div className={`grid gap-4 ${isAdmin ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-6" : isDoctor || isPharmacist || isCashier ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4" : "grid-cols-2 md:grid-cols-3"}`}>
+          {(isAdmin || isReceptionist) && <StatCard label="Registered Patients" value={stats.patients} to="/reception" metaKey="patients" />}
+          {(isAdmin || isReceptionist || isDoctor) && <StatCard label="Today's Appointments" value={report?.total_appointments_today ?? stats.appointments} sub={report ? `${report.appointments_completed} completed` : null} to="/appointments" metaKey="appointments" />}
+          {(isAdmin || isLabTech || isDoctor) && <StatCard label="Pending Lab Orders" value={report?.pending_lab_orders ?? stats.labOrders} to="/lab" metaKey="labOrders" />}
+          {(isAdmin || isNurse || isDoctor) && <StatCard label="Occupied Beds" value={report?.active_inpatients ?? stats.occupiedBeds} to="/inpatient" metaKey="beds" />}
+          {(isAdmin || isPharmacist) && <StatCard label="Low Stock Drugs" value={report?.drugs_low_stock ?? stats.drugs} color={report?.drugs_low_stock > 0 ? 'warning' : 'success'} to="/pharmacy" metaKey="drugs" />}
+          {(isAdmin || isCashier) && <StatCard label="Revenue (MWK)" value={(report?.total_revenue_mwk ?? stats.revenue).toLocaleString()} to="/billing" metaKey="revenue" />}
         </div>
       </div>
 
       {/* Admin Dashboard Widgets */}
-      <div>
-        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Daily Operations</h2>
-        <DailyIntakeSummary />
-      </div>
+      {isAdmin && (
+        <>
+          <div>
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Daily Operations</h2>
+            <DailyIntakeSummary />
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RevenueBreakdown />
-        <WardOccupancySummary />
-      </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <RevenueBreakdown />
+            <WardOccupancySummary />
+          </div>
+        </>
+      )}
 
-      {report && (
+      {report && isAdmin && (
         <div>
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Operational Summary</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
@@ -393,7 +427,8 @@ export default function Dashboard() {
 
 
 
-      {/* Occupancy & Queue Visualization */}
+      {/* Role-Specific Visualizations */}
+      {(isAdmin || isReceptionist || isNurse) && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TriageWidget />
 
@@ -452,10 +487,11 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+        )}
 
-      <div className="bg-white rounded-lg border border-border p-5">
-          <div className="mb-4">
+        <div className="bg-white rounded-lg border border-border p-5">
+         <div className="mb-4">
             <h3 className="font-heading text-sm font-semibold">Current Queue Status</h3>
             <p className="text-xs text-muted-foreground mt-1">Real-time patient flow across stations</p>
           </div>
@@ -527,14 +563,15 @@ export default function Dashboard() {
             )}
             </div>
 
-      <DepartmentHeatmap />
+      {(isAdmin || isDoctor || isNurse) && <DepartmentHeatmap />}
 
-      <RealTimeVitals />
+      {(isAdmin || isNurse || isDoctor) && <RealTimeVitals />}
 
-      <WardSummary />
+      {(isAdmin || isNurse) && <WardSummary />}
 
-      <WardOccupancyChart compact />
+      {(isAdmin || isNurse) && <WardOccupancyChart compact />}
 
+      {(isAdmin || isDoctor || isNurse || isReceptionist || isCashier) && (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2 bg-white rounded-lg border border-border p-5">
           <h3 className="font-heading text-sm font-semibold mb-4 flex items-center gap-2">
@@ -793,11 +830,12 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-        </div>
-      </div>
+          </div>
+          </div>
+          )}
 
-      {/* Batch Export Modal */}
-      {batchModal && (
+          {/* Batch Export Modal */}
+          {isAdmin && batchModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/40" onClick={() => { setBatchModal(false); setBatchResult(null); }} />
           <div className="relative z-10 w-full max-w-md mx-4 bg-card rounded-2xl border border-border shadow-xl p-6">
