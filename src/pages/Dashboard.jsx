@@ -714,22 +714,14 @@ export default function Dashboard() {
                                     {isBreached && (
                                     <div className="w-1.5 h-1.5 rounded-full bg-clinical-critical animate-pulse" title="SLA Breached" />
                                     )}
-                                    </div>
-                                    </div>
-                                    );
-                                    })}
-                                    </div>
-                                    )}
-                                    </div>
-                                    );
-                                    })}
-                                    </div>
-                                    )}
-                                    </div>
-                                    </div>
-                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
 
-                                    <RoleBasedReportDownload userRole={userRole} />
+            <RoleBasedReportDownload userRole={userRole} />
 
           {/* Admin Quick Actions + Patient Reminders — side by side */}
           {isAdmin && (
