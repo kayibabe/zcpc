@@ -5,6 +5,10 @@
     "patient_id": {
       "type": "string"
     },
+    "visit_id": {
+      "type": "string",
+      "description": "Reference to Visit created when appointment is checked in"
+    },
     "appointment_date": {
       "type": "string",
       "format": "date"

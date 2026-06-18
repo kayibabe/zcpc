@@ -29,6 +29,10 @@
       "type": "string",
       "format": "date"
     },
+    "follow_up_visit_id": {
+      "type": "string",
+      "description": "Reference to follow-up Visit when patient returns"
+    },
     "follow_up_instructions": {
       "type": "string"
     },

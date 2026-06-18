@@ -5,6 +5,10 @@
     "invoice_id": {
       "type": "string"
     },
+    "service_id": {
+      "type": "string",
+      "description": "Reference to LabOrder, ImagingOrder, Prescription, Consultation, or SurgicalBooking"
+    },
     "service_type": {
       "type": "string",
       "enum": [
