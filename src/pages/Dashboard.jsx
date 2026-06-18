@@ -12,6 +12,9 @@ import WardOccupancyChart from "@/components/WardOccupancyChart";
 import DepartmentHeatmap from "@/components/DepartmentHeatmap";
 import BedOccupancyAlert from "@/components/BedOccupancyAlert";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import DailyIntakeSummary from "@/components/AdminDashboardWidgets/DailyIntakeSummary";
+import RevenueBreakdown from "@/components/AdminDashboardWidgets/RevenueBreakdown";
+import WardOccupancySummary from "@/components/AdminDashboardWidgets/WardOccupancySummary";
 
 const CHART_COLORS = ["hsl(194, 65%, 42%)", "hsl(38, 92%, 50%)", "hsl(160, 60%, 40%)", "hsl(280, 50%, 50%)", "hsl(340, 65%, 50%)", "hsl(0, 72%, 51%)"];
 
@@ -331,6 +334,17 @@ export default function Dashboard() {
           <StatCard label="Low Stock Drugs" value={report?.drugs_low_stock ?? stats.drugs} color={report?.drugs_low_stock > 0 ? 'warning' : 'success'} to="/pharmacy" metaKey="drugs" />
           <StatCard label="Revenue (MWK)" value={(report?.total_revenue_mwk ?? stats.revenue).toLocaleString()} to="/billing" metaKey="revenue" />
         </div>
+      </div>
+
+      {/* Admin Dashboard Widgets */}
+      <div>
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Daily Operations</h2>
+        <DailyIntakeSummary />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <RevenueBreakdown />
+        <WardOccupancySummary />
       </div>
 
       {report && (
