@@ -200,31 +200,48 @@ export default function Inpatient() {
           {activeTab === "ward-view" && <WardBedDashboard />}
 
           {activeTab === "beds" && (
-            <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {wards.map(w => {
                 const wardBeds = getWardBeds(w.id);
+                const occupied = wardBeds.filter(b => b.status === "occupied").length;
                 return (
-                  <div key={w.id} className="mb-4">
-                    <h4 className="font-heading font-semibold text-sm mb-2">{w.name} <span className="text-muted-foreground font-normal">({w.type} • Floor {w.floor || "—"})</span></h4>
-                    <div className="flex flex-wrap gap-2">
-                      {wardBeds.map(b => (
-                        <button
-                          key={b.id}
-                          onClick={() => b.status !== "occupied" && toggleBedStatus(b.id, b.status)}
-                          disabled={b.status === "occupied"}
-                          title={b.status === "occupied" ? "Occupied — discharge first" : `Click to change: ${b.status} → ${bedStatusCycle[b.status]}`}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all hover:shadow-sm ${bedStatusColors[b.status] || "bg-muted text-muted-foreground"} ${b.status !== "occupied" ? "cursor-pointer hover:scale-105" : "cursor-not-allowed opacity-70"}`}
-                        >
-                          {b.bed_number}
-                          {b.status !== "occupied" && <span className="ml-1 text-[9px] opacity-60">↻</span>}
-                        </button>
-                      ))}
-                      {wardBeds.length === 0 && <span className="text-xs text-muted-foreground py-1">No beds</span>}
+                  <div key={w.id} className="bg-card rounded-xl border border-border/60 shadow-sm overflow-hidden flex flex-col">
+                    <div className="px-4 py-3 border-b border-border/60 bg-muted/20 flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <h4 className="font-heading font-semibold text-sm truncate flex items-center gap-1.5">
+                          <Building className="w-3.5 h-3.5 text-primary shrink-0" /> {w.name}
+                        </h4>
+                        <p className="text-[11px] text-muted-foreground capitalize">{w.type} • Floor {w.floor || "—"}</p>
+                      </div>
+                      <span className="shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full bg-primary/10 text-primary">
+                        {occupied}/{wardBeds.length}
+                      </span>
+                    </div>
+                    <div className="p-3 flex-1">
+                      {wardBeds.length === 0 ? (
+                        <div className="py-6 text-center text-xs text-muted-foreground">No beds</div>
+                      ) : (
+                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                          {wardBeds.map(b => (
+                            <button
+                              key={b.id}
+                              onClick={() => b.status !== "occupied" && toggleBedStatus(b.id, b.status)}
+                              disabled={b.status === "occupied"}
+                              title={b.status === "occupied" ? "Occupied — discharge first" : `Click to change: ${b.status} → ${bedStatusCycle[b.status]}`}
+                              className={`flex flex-col items-center justify-center gap-1 rounded-lg border p-2.5 transition-all hover:shadow-sm ${bedStatusColors[b.status] || "bg-muted text-muted-foreground"} ${b.status !== "occupied" ? "cursor-pointer hover:scale-[1.03]" : "cursor-not-allowed opacity-80"}`}
+                            >
+                              <BedDouble className="w-4 h-4 opacity-80" />
+                              <span className="text-xs font-semibold leading-none">{b.bed_number}</span>
+                              <span className="text-[9px] capitalize leading-none opacity-80">{b.status}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
               })}
-              {wards.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No wards configured. Add a ward first.</p>}
+              {wards.length === 0 && <p className="md:col-span-2 xl:col-span-3 py-8 text-center text-sm text-muted-foreground">No wards configured. Add a ward first.</p>}
             </div>
           )}
 
