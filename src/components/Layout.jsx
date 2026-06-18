@@ -58,11 +58,11 @@ const ALL_NAV_GROUPS = [
 {
   label: "Operations & Scheduling",
   items: [
-  { label: "Calendar", path: "/calendar", icon: CalendarDays, roles: ["admin", "user"] },
-  { label: "Doctor Schedule", path: "/doctor-schedule", icon: Clock, roles: ["admin", "user"] },
+  { label: "Calendar", path: "/calendar", icon: CalendarDays, roles: ["admin", "user", "receptionist"] },
+  { label: "Doctor Schedule", path: "/doctor-schedule", icon: Clock, roles: ["admin", "user", "receptionist"] },
   { label: "Staff Shifts", path: "/staff-shifts", icon: Zap, roles: ["admin", "user"] },
   { label: "Doctor Handover", path: "/doctor-handover", icon: ArrowRightLeft, roles: ["admin", "user"] },
-  { label: "Queue Display", path: "/queue", icon: Monitor, roles: ["admin", "user"] }]
+  { label: "Queue Display", path: "/queue", icon: Monitor, roles: ["admin", "user", "receptionist"] }]
 
 },
 {
