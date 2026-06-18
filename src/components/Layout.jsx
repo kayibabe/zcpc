@@ -31,28 +31,28 @@ const ALL_NAV_GROUPS = [
 {
   label: "Clinical",
   items: [
-  { label: "Consultations", path: "/clinical", icon: Stethoscope, roles: ["admin", "user"] },
-  { label: "Nursing", path: "/nursing", icon: ClipboardPen, roles: ["admin", "user"] },
-  { label: "Laboratory", path: "/lab", icon: FlaskConical, roles: ["admin", "user"] },
-  { label: "Imaging", path: "/imaging", icon: Scan, roles: ["admin", "user"] },
-  { label: "Radiology Reports", path: "/radiology-reports", icon: FileText, roles: ["admin", "user"] },
-  { label: "Pharmacy", path: "/pharmacy", icon: Pill, roles: ["admin", "user"] }]
+  { label: "Consultations", path: "/clinical", icon: Stethoscope, roles: ["admin", "user", "doctor", "clinician"] },
+  { label: "Nursing", path: "/nursing", icon: ClipboardPen, roles: ["admin", "user", "nurse", "midwife"] },
+  { label: "Laboratory", path: "/lab", icon: FlaskConical, roles: ["admin", "user", "doctor", "clinician", "lab_technician"] },
+  { label: "Imaging", path: "/imaging", icon: Scan, roles: ["admin", "user", "doctor", "clinician", "radiographer"] },
+  { label: "Radiology Reports", path: "/radiology-reports", icon: FileText, roles: ["admin", "user", "doctor", "clinician", "radiographer"] },
+  { label: "Pharmacy", path: "/pharmacy", icon: Pill, roles: ["admin", "user", "doctor", "clinician", "pharmacist"] }]
 
 },
 {
   label: "Inpatient & Theatre",
   items: [
-  { label: "Inpatient", path: "/inpatient", icon: BedDouble, roles: ["admin", "user"] },
-  { label: "Maternal", path: "/maternal", icon: Baby, roles: ["admin", "user"] },
-  { label: "Discharge Checklist", path: "/discharge-checklist", icon: CheckCircle, roles: ["admin", "user"] },
-  { label: "Theatre Calendar", path: "/surgery-calendar", icon: Scissors, roles: ["admin", "user"] }]
+  { label: "Inpatient", path: "/inpatient", icon: BedDouble, roles: ["admin", "user", "nurse", "midwife", "doctor", "clinician"] },
+  { label: "Maternal", path: "/maternal", icon: Baby, roles: ["admin", "user", "nurse", "midwife", "doctor", "clinician"] },
+  { label: "Discharge Checklist", path: "/discharge-checklist", icon: CheckCircle, roles: ["admin", "user", "nurse", "doctor", "clinician"] },
+  { label: "Theatre Calendar", path: "/surgery-calendar", icon: Scissors, roles: ["admin", "user", "surgical_lead", "doctor"] }]
 
 },
 {
   label: "Billing & Insurance",
   items: [
-  { label: "Billing", path: "/billing", icon: Receipt, roles: ["admin", "user"] },
-  { label: "Insurance Claims", path: "/insurance-claims", icon: FileBarChart, roles: ["admin", "user"] }]
+  { label: "Billing", path: "/billing", icon: Receipt, roles: ["admin", "user", "cashier", "receptionist"] },
+  { label: "Insurance Claims", path: "/insurance-claims", icon: FileBarChart, roles: ["admin", "user", "cashier"] }]
 
 },
 {
