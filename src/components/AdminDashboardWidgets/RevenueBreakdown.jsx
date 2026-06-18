@@ -14,10 +14,10 @@ export default function RevenueBreakdown() {
     async function fetchRevenue() {
       try {
         const today = new Date().toISOString().split('T')[0];
-        const invoices = await base44.entities.Invoice.filter(
-          { created_date: { $gte: `${today}T00:00:00Z` }, status: { $in: ["paid", "partial"] } },
-          "-created_date",
-          500
+        const allInvoices = await base44.entities.Invoice.list("-created_date", 1000);
+        const invoices = allInvoices.filter(i => 
+          i.created_date?.substring(0, 10) === today && 
+          (i.status === "paid" || i.status === "partial")
         );
 
         const byMethod = {};
