@@ -76,6 +76,9 @@
           "data.target_user_id": "{{user.id}}"
         },
         {
+          "data.target_role": "{{user.role}}"
+        },
+        {
           "user_condition": {
             "role": "admin"
           }
@@ -86,6 +89,9 @@
       "$or": [
         {
           "data.target_user_id": "{{user.id}}"
+        },
+        {
+          "data.target_role": "{{user.role}}"
         },
         {
           "user_condition": {
