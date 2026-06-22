@@ -55,8 +55,10 @@ class Settings(BaseSettings):
     @property
     def db_url(self) -> str:
         if self.DATABASE_URL:
-            # fly.dev uses postgres:// — convert to asyncpg scheme
-            return (self.DATABASE_URL
+            # fly.dev uses postgres:// with ?sslmode=disable — strip query string
+            # and convert scheme because asyncpg doesn't recognise sslmode.
+            base = self.DATABASE_URL.split("?")[0]
+            return (base
                     .replace("postgres://", "postgresql+asyncpg://")
                     .replace("postgresql://", "postgresql+asyncpg://"))
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
@@ -64,7 +66,8 @@ class Settings(BaseSettings):
     @property
     def db_url_sync(self) -> str:
         if self.DATABASE_URL:
-            return (self.DATABASE_URL
+            base = self.DATABASE_URL.split("?")[0]
+            return (base
                     .replace("postgres://", "postgresql+psycopg://")
                     .replace("postgresql://", "postgresql+psycopg://"))
         return f"postgresql+psycopg://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"

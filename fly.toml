@@ -3,7 +3,7 @@ primary_region = 'jnb'
 
 [build]
   [build.args]
-    VITE_BACKEND_URL = '/api/v1'
+    VITE_BACKEND_URL = 'https://zcpc-api.fly.dev/api/v1'
 
 [http_service]
   internal_port = 8080
