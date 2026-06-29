@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     AT_USERNAME: str = "sandbox"
     AT_SENDER_ID: str = "ZCPC"
 
+    # Seed scripts — required when running seed_admin.py / seed_users.py
+    ADMIN_PASSWORD: str = ""
+    SEED_USER_PASSWORD: str = ""
+
     ENVIRONMENT: str = "development"
     DEBUG: bool = False
 
