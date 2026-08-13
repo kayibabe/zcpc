@@ -37,3 +37,4 @@ dist-ssr
 .pytest_cache/
 .ruff_cache/
 __pycache__/
+base44/.app.jsonc
